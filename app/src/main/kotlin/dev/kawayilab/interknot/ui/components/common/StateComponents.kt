@@ -25,6 +25,7 @@ import dev.kawayilab.interknot.ui.theme.Spacing
 /**
  * Centered empty-state placeholder with icon, message, and optional action.
  */
+@Suppress("DEPRECATION")
 @Composable
 fun EmptyState(
     message: String,
