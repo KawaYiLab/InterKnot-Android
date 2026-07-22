@@ -7,14 +7,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import dev.kawayilab.interknot.data.repository.InterknotRepository
+import kotlinx.coroutines.launch
 import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
 import dev.kawayilab.interknot.ui.screens.create.CreateScreen
 import dev.kawayilab.interknot.ui.screens.home.HomeScreen
@@ -26,9 +31,21 @@ import dev.kawayilab.interknot.ui.screens.profile.ProfileScreen
 
 @Composable
 fun InterknotNavHost(
+    repository: InterknotRepository,
     modifier: Modifier = Modifier,
     backStack: InterknotBackStack = remember { InterknotBackStack() }
 ) {
+    val user by repository.user.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(user) {
+        if (user != null) {
+            backStack.login()
+        } else {
+            backStack.logout()
+        }
+    }
+
     val currentTopLevel = backStack.currentTopLevel
 
     Scaffold(
@@ -62,19 +79,24 @@ fun InterknotNavHost(
                         HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
                     }
                     entry<Knock> { KnockScreen() }
-                    entry<Create> { CreateScreen(onNavigateBack = dropUnlessResumed { backStack.goBack() }) }
+                    entry<Create> { CreateScreen(onNavigateBack = { backStack.goBack() }) }
                     entry<Level> { LevelScreen() }
                     entry<Profile> {
-                        ProfileScreen(onLogout = dropUnlessResumed { backStack.logout() })
+                        ProfileScreen(
+                            user = user,
+                            onLogout = {
+                                scope.launch { repository.logout() }
+                            }
+                        )
                     }
                     entry<PostDetail> { key ->
                         PostDetailScreen(
                             postId = key.postId,
-                            onNavigateBack = dropUnlessResumed { backStack.goBack() }
+                            onNavigateBack = { backStack.goBack() }
                         )
                     }
                     entry<Login> {
-                        LoginScreen(onLoginSuccess = dropUnlessResumed { backStack.login() })
+                        LoginScreen(onLoginSuccess = { backStack.login() })
                     }
                 }
             )

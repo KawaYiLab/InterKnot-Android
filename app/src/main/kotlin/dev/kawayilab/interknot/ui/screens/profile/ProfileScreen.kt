@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.kawayilab.interknot.model.User
 
 @Composable
 fun ProfileScreen(
+    user: User?,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -45,19 +47,30 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "用户资料",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Text(
-                text = "登录状态：已登录",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Button(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("退出登录")
+            if (user != null) {
+                Text(
+                    text = user.name ?: user.username ?: "用户",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "邮箱：${user.email ?: "-"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "等级：Lv.${user.level ?: 1}  经验：${user.exp ?: 0}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Button(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("退出登录")
+                }
+            } else {
+                Text(
+                    text = "未登录",
+                    style = MaterialTheme.typography.headlineSmall
+                )
             }
         }
     }

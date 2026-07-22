@@ -1,31 +1,83 @@
 package dev.kawayilab.interknot.data.repository
 
 import dev.kawayilab.interknot.data.api.InterknotApi
+import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.data.local.UserPreferences
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
+import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.User
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 @Singleton
 class InterknotRepository @Inject constructor(
     private val api: InterknotApi,
     private val preferences: UserPreferences
 ) {
+    private val _user = MutableStateFlow<User?>(null)
+    val user: StateFlow<User?> = _user.asStateFlow()
+    val isLoggedIn: Flow<Boolean> = user.map { it != null }
+
     val token: Flow<String?> = preferences.token
 
-    suspend fun login(username: String, password: String) {
-        val token = api.login(username, password)
-        preferences.saveToken(token)
+    init {
+        // todo: load user from DataStore on app start? UserPreferences.user flow can be collected externally.
+    }
+
+    suspend fun loadSessionFromStorage(): User? {
+        TokenManager.token = preferences.token.first()
+        val storedUser = preferences.user.first()
+        _user.value = storedUser
+        return storedUser
+    }
+
+    suspend fun login(identifier: String, password: String): Result<AuthResult> {
+        return api.login(identifier, password).onSuccess { result ->
+            preferences.saveSession(result.token, result.user)
+            _user.value = result.user
+            refreshSelfUser()
+        }
+    }
+
+    suspend fun register(email: String, code: String, password: String): Result<AuthResult> {
+        return api.register(email, code, password).onSuccess { result ->
+            preferences.saveSession(result.token, result.user)
+            _user.value = result.user
+            refreshSelfUser()
+        }
+    }
+
+    private suspend fun refreshSelfUser() {
+        api.getCurrentUser().onSuccess { user ->
+            val token = TokenManager.token ?: preferences.token.first() ?: return
+            preferences.saveSession(token, user)
+            _user.value = user
+        }
+    }
+
+    suspend fun sendRegisterCode(email: String): Result<Pair<Boolean, Int>> {
+        return api.sendRegisterCode(email)
+    }
+
+    suspend fun fetchCurrentUser(): Result<User> {
+        return api.getCurrentUser().onSuccess { user ->
+            val token = TokenManager.token ?: preferences.token.first() ?: ""
+            preferences.saveSession(token, user)
+            _user.value = user
+        }
     }
 
     suspend fun logout() {
-        preferences.clearToken()
+        preferences.clearSession()
+        _user.value = null
     }
-
-    suspend fun getCurrentUser(): User = api.getCurrentUser()
 
     suspend fun getArticles(
         start: Int,
