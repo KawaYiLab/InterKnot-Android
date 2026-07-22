@@ -3,9 +3,13 @@ package dev.kawayilab.interknot.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -16,7 +20,6 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import dev.kawayilab.interknot.ui.components.navigation.CenterCreateButton
 import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
 import dev.kawayilab.interknot.ui.screens.create.CreateScreen
 import dev.kawayilab.interknot.ui.screens.home.HomeScreen
@@ -48,10 +51,17 @@ fun InterknotNavHost(
         },
         floatingActionButton = {
             if (backStack.isTopLevel) {
-                CenterCreateButton(
+                FloatingActionButton(
                     onClick = { backStack.navigate(Create) },
-                    modifier = Modifier.offset(y = (-12).dp)
-                )
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "发布委托"
+                    )
+                }
             }
         },
         floatingActionButtonPosition = FabPosition.Center

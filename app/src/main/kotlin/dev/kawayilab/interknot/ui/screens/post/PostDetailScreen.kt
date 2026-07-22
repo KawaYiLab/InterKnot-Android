@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,9 +62,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.ui.theme.Background
-import dev.kawayilab.interknot.ui.theme.Border
-import dev.kawayilab.interknot.ui.theme.CardInner
-import dev.kawayilab.interknot.ui.theme.HeaderBorder
 import dev.kawayilab.interknot.ui.theme.InterknotYellow
 import dev.kawayilab.interknot.ui.theme.TextMuted
 import dev.kawayilab.interknot.ui.theme.TextPrimary
@@ -84,6 +82,8 @@ fun PostDetailScreen(
         viewModel.load(postId)
     }
 
+    val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Background,
@@ -100,7 +100,7 @@ fun PostDetailScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
                 )
         },
-        bottomBar = { article?.let { ArticleActionsBar(it) } }
+        bottomBar = { article?.let { ArticleActionsBar() } }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -124,7 +124,10 @@ fun PostDetailScreen(
                 }
 
                 article != null -> {
-                    ArticleDetailContent(article = article!!)
+                    ArticleDetailContent(
+                        article = article!!,
+                        bottomPadding = 80.dp + navBottom + 16.dp
+                    )
                 }
             }
         }
@@ -137,52 +140,7 @@ private fun PostDetailTopBar(
     onBack: () -> Unit
 ) {
     TopAppBar(
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(CardInner)
-                        .padding(3.dp)
-                        .clip(CircleShape)
-                        .background(Border)
-                ) {
-                    AsyncImage(
-                        model = article.author?.avatarUrl,
-                        contentDescription = article.author?.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Lv.${article.author?.level ?: 1}",
-                            color = InterknotYellow,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = formatTime(article.publishedAt ?: article.createdAt),
-                            color = TextMuted,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-            }
-        },
+        title = { AuthorHeader(article = article) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -202,13 +160,74 @@ private fun PostDetailTopBar(
 }
 
 @Composable
+private fun AuthorHeader(article: Article) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = article.author?.avatarUrl,
+                contentDescription = article.author?.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
+                style = MaterialTheme.typography.titleSmall,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text(
+                        text = "Lv.${article.author?.level ?: 1}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = formatTime(article.publishedAt ?: article.createdAt),
+                    color = TextMuted,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ArticleDetailContent(
     article: Article,
+    bottomPadding: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 16.dp,
+            end = 16.dp,
+            bottom = bottomPadding
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
@@ -219,7 +238,7 @@ private fun ArticleDetailContent(
             val category = article.category?.name?.takeIf { it.isNotBlank() }
             Text(
                 text = if (category != null) "[ $category ] ${article.title}" else article.title,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 color = TextPrimary
             )
         }
@@ -268,8 +287,8 @@ private fun CoverPager(article: Article) {
                         modifier = Modifier
                             .height(6.dp)
                             .width(if (isSelected) 18.dp else 6.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) InterknotYellow else Color.White.copy(alpha = 0.4f))
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(if (isSelected) InterknotYellow else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
                     )
                 }
             }
@@ -284,55 +303,47 @@ private fun CoverImage(url: String?, contentDescription: String?) {
             .fillMaxWidth()
             .height(240.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(HeaderBorder)
+            .background(MaterialTheme.colorScheme.outlineVariant)
             .padding(4.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Background)
     ) {
         AsyncImage(
             model = url,
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.background)
         )
     }
 }
 
 @Composable
-private fun ArticleActionsBar(article: Article) {
-    val navPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+private fun ArticleActionsBar() {
     var comment by remember { mutableStateOf("") }
 
-    Surface(
+    BottomAppBar(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .padding(bottom = navPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        windowInsets = WindowInsets.navigationBars,
+        actions = {
             TextField(
                 value = comment,
                 onValueChange = { comment = it },
-                modifier = Modifier.weight(1f).height(42.dp),
+                modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(999.dp),
                 placeholder = {
                     Text(
-                        "说点什么...",
+                        "评论一下...",
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Background,
-                    unfocusedContainerColor = Background,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
@@ -344,72 +355,41 @@ private fun ArticleActionsBar(article: Article) {
                 )
             )
 
-            ActionIconButton(
+            ActionIcon(
                 icon = Icons.Default.ThumbUp,
-                count = article.likesCount,
-                isActive = article.liked,
                 onClick = {}
             )
-            ActionIconButton(
+            ActionIcon(
                 icon = Icons.Default.Star,
-                count = article.dennyCount,
-                isActive = article.hasGivenDenny,
-                tint = InterknotYellow,
                 onClick = {}
             )
-            ActionIconButton(
+            ActionIcon(
                 icon = Icons.Default.FavoriteBorder,
-                count = article.favoritesCount,
-                isActive = article.favorited,
                 onClick = {}
             )
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "更多",
-                    tint = TextSecondary
-                )
-            }
+            ActionIcon(
+                icon = Icons.Default.MoreVert,
+                onClick = {}
+            )
         }
-    }
+    )
 }
 
 @Composable
-private fun ActionIconButton(
+private fun ActionIcon(
     icon: ImageVector,
-    count: Int,
-    isActive: Boolean,
-    modifier: Modifier = Modifier,
-    tint: Color = InterknotYellow,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(44.dp)
     ) {
-        IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (isActive) tint else TextSecondary,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        if (count > 0) {
-            Text(
-                text = formatCount(count),
-                color = if (isActive) tint else TextSecondary,
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
-    }
-}
-
-private fun formatCount(count: Int): String {
-    return when {
-        count >= 10_000 -> "${count / 10_000}w"
-        count >= 1_000 -> "${count / 1_000}k"
-        else -> count.toString()
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }
 
