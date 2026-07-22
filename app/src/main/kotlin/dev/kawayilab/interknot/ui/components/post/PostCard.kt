@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -31,8 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +41,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
+import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
 import dev.kawayilab.interknot.ui.theme.Motion
 import dev.kawayilab.interknot.ui.theme.Spacing
 
@@ -60,109 +58,85 @@ fun PostCard(
         animationSpec = Motion.pressSpec(),
         label = "postCardPress"
     )
+    val extendedColors = LocalInterknotColors.current
+    val titleColor = if (article.isRead) extendedColors.titleRead else MaterialTheme.colorScheme.onSurface
+
+    val imageUrl = article.coverUrl ?: article.coverImages.firstOrNull()?.url
 
     Card(
         onClick = onClick,
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         modifier = modifier.scale(scale)
     ) {
         Column {
-            CoverSection(article = article)
+            if (imageUrl != null) {
+                CoverSection(article = article, imageUrl = imageUrl)
+            }
+
+            Text(
+                text = buildTitle(article),
+                style = MaterialTheme.typography.titleSmall,
+                color = titleColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(
+                    start = Spacing.sm,
+                    end = Spacing.sm,
+                    top = if (imageUrl != null) Spacing.sm else Spacing.md
+                )
+            )
+
             PostMeta(article = article)
         }
     }
 }
 
 @Composable
-private fun CoverSection(article: Article) {
+private fun CoverSection(article: Article, imageUrl: String) {
     val aspectRatio = if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
         article.coverWidth.toFloat() / article.coverHeight.toFloat()
     } else {
         0.75f
     }
 
-    val imageUrl = article.coverUrl ?: article.coverImages.firstOrNull()?.url
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(aspectRatio)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        if (imageUrl != null) {
-            SubcomposeAsyncImage(
-                model = imageUrl,
-                contentDescription = article.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                when (val state = painter.state) {
-                    is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                    else -> CoverPlaceholder()
-                }
+        SubcomposeAsyncImage(
+            model = imageUrl,
+            contentDescription = article.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            when (val state = painter.state) {
+                is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                else -> CoverShimmer()
             }
-        } else {
-            CoverPlaceholder()
         }
-
-        TitleOverlay(
-            title = buildTitle(article),
-            modifier = Modifier.align(Alignment.BottomStart)
-        )
     }
 }
 
 @Composable
-private fun CoverPlaceholder() {
+private fun CoverShimmer() {
+    val extendedColors = LocalInterknotColors.current
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.surfaceContainerLow,
-                        MaterialTheme.colorScheme.surfaceContainer
-                    )
-                )
-            ),
+            .background(extendedColors.shimmerBase),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Outlined.Image,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
-            modifier = Modifier.size(32.dp)
-        )
-    }
-}
-
-@Composable
-private fun TitleOverlay(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(max = 90.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
-                )
-            )
-            .padding(Spacing.md),
-        contentAlignment = Alignment.BottomStart
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = Color.White,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+            modifier = Modifier.size(28.dp)
         )
     }
 }
@@ -174,11 +148,11 @@ private fun PostMeta(article: Article) {
             .fillMaxWidth()
             .padding(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Box(
             modifier = Modifier
-                .size(24.dp)
+                .size(20.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center
@@ -204,7 +178,7 @@ private fun PostMeta(article: Article) {
         Text(
             text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -221,8 +195,8 @@ private fun DefaultAvatarIcon() {
     Icon(
         imageVector = Icons.Filled.Person,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.size(16.dp)
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier.size(14.dp)
     )
 }
 
@@ -236,13 +210,13 @@ private fun LikeChip(count: Int) {
             imageVector = Icons.Outlined.FavoriteBorder,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(14.dp)
         )
         Text(
             text = formatCount(count),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -264,17 +238,49 @@ private fun formatCount(count: Int): String {
 @Composable
 private fun PostCardPreviewDark() {
     InterknotTheme(darkTheme = true) {
-        PostCard(
-            article = Article(
-                documentId = "1",
-                title = "测试委托标题，最多显示两行",
-                coverUrl = null,
-                views = 1234,
-                likesCount = 88,
-                author = Author(name = "测试用户")
-            ),
-            onClick = {}
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // With cover
+            PostCard(
+                article = Article(
+                    documentId = "1",
+                    title = "测试委托标题，最多显示两行",
+                    coverUrl = null,
+                    coverWidth = 1080,
+                    coverHeight = 1440,
+                    views = 1234,
+                    likesCount = 88,
+                    author = Author(name = "测试用户")
+                ),
+                onClick = {}
+            )
+            // Text only
+            PostCard(
+                article = Article(
+                    documentId = "2",
+                    title = "纯文字委托标题",
+                    coverUrl = null,
+                    views = 567,
+                    likesCount = 12,
+                    author = Author(name = "另一个用户")
+                ),
+                onClick = {}
+            )
+            // Read
+            PostCard(
+                article = Article(
+                    documentId = "3",
+                    title = "已读的委托标题",
+                    coverUrl = null,
+                    coverWidth = 1080,
+                    coverHeight = 720,
+                    views = 890,
+                    likesCount = 3,
+                    isRead = true,
+                    author = Author(name = "作者")
+                ),
+                onClick = {}
+            )
+        }
     }
 }
 
@@ -282,16 +288,31 @@ private fun PostCardPreviewDark() {
 @Composable
 private fun PostCardPreviewLight() {
     InterknotTheme(darkTheme = false) {
-        PostCard(
-            article = Article(
-                documentId = "1",
-                title = "测试委托标题，最多显示两行",
-                coverUrl = null,
-                views = 1234,
-                likesCount = 88,
-                author = Author(name = "测试用户")
-            ),
-            onClick = {}
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PostCard(
+                article = Article(
+                    documentId = "1",
+                    title = "测试委托标题，最多显示两行",
+                    coverUrl = null,
+                    coverWidth = 1080,
+                    coverHeight = 1440,
+                    views = 1234,
+                    likesCount = 88,
+                    author = Author(name = "测试用户")
+                ),
+                onClick = {}
+            )
+            PostCard(
+                article = Article(
+                    documentId = "2",
+                    title = "纯文字委托标题",
+                    coverUrl = null,
+                    views = 567,
+                    likesCount = 12,
+                    author = Author(name = "另一个用户")
+                ),
+                onClick = {}
+            )
+        }
     }
 }

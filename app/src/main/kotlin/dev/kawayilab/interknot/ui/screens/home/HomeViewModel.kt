@@ -27,6 +27,9 @@ class HomeViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _isLoadingCategories = MutableStateFlow(false)
     val isLoadingCategories: StateFlow<Boolean> = _isLoadingCategories.asStateFlow()
 
@@ -73,7 +76,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadMore() {
-        if (_isLoading.value || !_hasMore.value) return
+        if (_isLoading.value || _isRefreshing.value || !_hasMore.value) return
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _isLoading.value = true
@@ -98,11 +101,50 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         loadJob?.cancel()
+        _isRefreshing.value = false
         start = 0
         _articles.value = emptyList()
         _hasMore.value = true
         _error.value = null
         loadMore()
+    }
+
+    /**
+     * Pull-to-refresh: fetches fresh data from page 0 but keeps
+     * existing articles visible during the refresh for a smooth UX.
+     */
+    fun pullRefresh() {
+        if (_isRefreshing.value) return
+        loadJob?.cancel()
+        _isRefreshing.value = true
+        _error.value = null
+        val savedStart = start
+        start = 0
+        _hasMore.value = true
+        loadJob = viewModelScope.launch {
+            try {
+                val currentQuery = _query.value.trim()
+                val currentCategory = _categorySlug.value?.takeIf { it.isNotBlank() }
+                val result = if (currentQuery.isNotEmpty()) {
+                    repository.searchArticles(currentQuery, start, limit, currentCategory)
+                } else {
+                    repository.getArticles(start, limit, _feed.value, currentCategory)
+                }
+                result
+                    .onSuccess { page ->
+                        _articles.value = page.items
+                        start = page.items.size
+                        _hasMore.value = page.hasMore
+                    }
+                    .onFailure {
+                        // Revert start on failure so old pagination state is preserved
+                        start = savedStart
+                        _error.value = it.message ?: "刷新失败"
+                    }
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 
     private fun loadCategories() {
