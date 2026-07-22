@@ -3,8 +3,9 @@ package dev.kawayilab.interknot.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class User(
+data class Post(
     val id: String,
-    val username: String,
-    val email: String?
+    val title: String,
+    val content: String,
+    val author: User? = null
 )

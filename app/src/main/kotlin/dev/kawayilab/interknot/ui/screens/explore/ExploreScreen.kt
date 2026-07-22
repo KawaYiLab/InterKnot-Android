@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-package dev.kawayilab.interknot.ui.screens.home
+package dev.kawayilab.interknot.ui.screens.explore
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(
+fun ExploreScreen(
     onPostClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -29,7 +29,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("首页") }
+                title = { Text("探索") }
             )
         }
     ) { innerPadding ->
@@ -43,7 +43,7 @@ fun HomeScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(samplePosts) { postId ->
+            items(explorePosts) { postId ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -51,7 +51,7 @@ fun HomeScreen(
                         .clickable { onPostClick(postId) }
                 ) {
                     Text(
-                        text = "帖子 #$postId",
+                        text = "发现帖子 #$postId",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(16.dp)
                     )
@@ -61,4 +61,4 @@ fun HomeScreen(
     }
 }
 
-private val samplePosts = (1..20).map { it.toString() }
+private val explorePosts = (21..40).map { it.toString() }

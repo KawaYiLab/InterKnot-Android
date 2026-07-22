@@ -1,36 +1,36 @@
 package dev.kawayilab.interknot.data.local
 
+import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
 @Singleton
 class UserPreferences @Inject constructor(
-    private val dataStore: DataStore<Preferences>
+    @ApplicationContext context: Context
 ) {
+    private val dataStore = context.dataStore
 
-    val token: Flow<String?> = dataStore.data.map { prefs ->
-        prefs[KEY_TOKEN]
+    private object Keys {
+        val TOKEN = stringPreferencesKey("token")
     }
 
+    val token: Flow<String?> = dataStore.data.map { it[Keys.TOKEN] }
+
     suspend fun saveToken(token: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TOKEN] = token
-        }
+        dataStore.edit { it[Keys.TOKEN] = token }
     }
 
     suspend fun clearToken() {
-        dataStore.edit { prefs ->
-            prefs.remove(KEY_TOKEN)
-        }
-    }
-
-    companion object {
-        private val KEY_TOKEN = stringPreferencesKey("auth_token")
+        dataStore.edit { it.remove(Keys.TOKEN) }
     }
 }

@@ -1,6 +1,5 @@
 package dev.kawayilab.interknot.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,43 +8,38 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 
-private val LightColors = lightColorScheme(
+private val LightColorScheme = lightColorScheme(
     primary = InterknotYellow,
     onPrimary = InterknotBlack,
-    primaryContainer = InterknotLightGray,
+    primaryContainer = InterknotYellow,
     onPrimaryContainer = InterknotBlack,
-    secondary = InterknotDarkYellow,
-    onSecondary = InterknotBlack,
-    background = InterknotLightGray,
+    secondary = InterknotPurple,
+    onSecondary = InterknotWhite,
+    background = InterknotWhite,
     onBackground = InterknotBlack,
-    surface = Color.White,
+    surface = InterknotWhite,
     onSurface = InterknotBlack,
 )
 
-private val DarkColors = darkColorScheme(
+private val DarkColorScheme = darkColorScheme(
     primary = InterknotYellow,
     onPrimary = InterknotBlack,
-    primaryContainer = InterknotBlack,
-    onPrimaryContainer = InterknotLightGray,
-    secondary = InterknotDarkYellow,
-    onSecondary = InterknotBlack,
+    primaryContainer = InterknotYellowDark,
+    onPrimaryContainer = InterknotBlack,
+    secondary = InterknotPurple,
+    onSecondary = InterknotWhite,
     background = InterknotBlack,
-    onBackground = InterknotLightGray,
-    surface = Color(0xFF303030),
-    onSurface = InterknotLightGray,
+    onBackground = InterknotWhite,
+    surface = InterknotBlack,
+    onSurface = InterknotWhite,
 )
 
 @Composable
 fun InterknotTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -53,17 +47,9 @@ fun InterknotTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColors
-        else -> LightColors
-    }
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
     }
 
     MaterialTheme(
