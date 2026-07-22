@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -82,8 +83,9 @@ fun HomeScreen(
     var searchActive by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
 
-    LaunchedEffect(gridState, hasMore, isLoading) {
+    LaunchedEffect(Unit) {
         snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .distinctUntilChanged()
             .collect { lastVisible ->
                 if (hasMore && !isLoading && lastVisible >= articles.size - 6) {
                     viewModel.loadMore()
@@ -91,13 +93,20 @@ fun HomeScreen(
             }
     }
 
-    val feedLabels = remember { listOf("关注" to "following", "推荐" to "recommend") }
+    val feedLabels = remember {
+        listOf(
+            "关注" to "following",
+            "推荐" to "recommend",
+            "收藏" to "favorites"
+        )
+    }
     val selectedFeedIndex = feedLabels.indexOfFirst { it.second == feed }.coerceAtLeast(1)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             HomeTopBar(
+                feedLabels = feedLabels,
                 selectedTab = selectedFeedIndex,
                 onTabSelected = { viewModel.setFeed(feedLabels[it].second) },
                 searchActive = searchActive,
@@ -183,6 +192,7 @@ fun HomeScreen(
 
 @Composable
 private fun HomeTopBar(
+    feedLabels: List<Pair<String, String>>,
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     searchActive: Boolean,
@@ -191,7 +201,7 @@ private fun HomeTopBar(
     onSearchActiveChange: (Boolean) -> Unit,
     onSearch: () -> Unit
 ) {
-    val tabs = listOf("关注", "推荐")
+    val tabs = feedLabels.map { it.first }
 
     TopAppBar(
         modifier = Modifier.fillMaxWidth(),
@@ -228,7 +238,7 @@ private fun HomeTopBar(
                 )
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(0.7f),
+                    modifier = Modifier.fillMaxWidth(0.8f),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     tabs.forEachIndexed { index, title ->

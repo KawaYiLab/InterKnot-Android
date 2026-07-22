@@ -14,10 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +42,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.ui.components.common.ShimmerBox
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
 import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
 import dev.kawayilab.interknot.ui.theme.Motion
@@ -59,13 +62,13 @@ fun PostCard(
         label = "postCardPress"
     )
     val extendedColors = LocalInterknotColors.current
-    val titleColor = if (article.isRead) extendedColors.titleRead else MaterialTheme.colorScheme.onSurface
+    val titleColor = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
 
     val imageUrl = article.coverUrl ?: article.coverImages.firstOrNull()?.url
 
     Card(
         onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 0.dp, bottomStart = 24.dp),
         interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -120,25 +123,54 @@ private fun CoverSection(article: Article, imageUrl: String) {
                 else -> CoverShimmer()
             }
         }
+
+        if (article.coverNsfwStatus != null && article.coverNsfwStatus != "safe") {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (article.coverNsfwStatus == "error") "图片审核中" else "敏感内容",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        ViewsOverlay(views = article.views, modifier = Modifier.align(Alignment.TopStart))
+    }
+}
+
+@Composable
+private fun ViewsOverlay(views: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .padding(Spacing.sm)
+            .background(Color.Black.copy(alpha = 0.45f), shape = MaterialTheme.shapes.extraSmall)
+            .padding(horizontal = Spacing.xs, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Visibility,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = formatCount(views),
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
 @Composable
 private fun CoverShimmer() {
-    val extendedColors = LocalInterknotColors.current
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(extendedColors.shimmerBase),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Image,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-            modifier = Modifier.size(28.dp)
-        )
-    }
+    ShimmerBox(modifier = Modifier.fillMaxSize())
 }
 
 @Composable
@@ -239,7 +271,6 @@ private fun formatCount(count: Int): String {
 private fun PostCardPreviewDark() {
     InterknotTheme(darkTheme = true) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // With cover
             PostCard(
                 article = Article(
                     documentId = "1",
@@ -253,7 +284,6 @@ private fun PostCardPreviewDark() {
                 ),
                 onClick = {}
             )
-            // Text only
             PostCard(
                 article = Article(
                     documentId = "2",
@@ -265,7 +295,6 @@ private fun PostCardPreviewDark() {
                 ),
                 onClick = {}
             )
-            // Read
             PostCard(
                 article = Article(
                     documentId = "3",

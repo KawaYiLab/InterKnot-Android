@@ -10,11 +10,16 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.FavoriteResult
+import dev.kawayilab.interknot.model.FollowResult
 import dev.kawayilab.interknot.model.KnockConversation
 import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
+import dev.kawayilab.interknot.model.ReportResult
 import dev.kawayilab.interknot.model.SearchSuggestion
+import dev.kawayilab.interknot.model.TripleResult
 import dev.kawayilab.interknot.model.User
+import dev.kawayilab.interknot.model.BlockResult
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -111,6 +116,34 @@ class InterknotRepository @Inject constructor(
 
     suspend fun toggleLike(targetType: String, targetId: String): Result<LikeResult> =
         api.toggleLike(targetType, targetId)
+
+    suspend fun toggleFavorite(articleDocumentId: String): Result<FavoriteResult> =
+        api.toggleFavorite(articleDocumentId)
+
+    suspend fun tripleArticle(articleId: String): Result<TripleResult> =
+        api.tripleArticle(articleId)
+
+    suspend fun toggleFollow(authorDocumentId: String): Result<FollowResult> =
+        api.toggleFollow(authorDocumentId)
+
+    suspend fun checkFollow(authorDocumentIds: List<String>): Result<Map<String, Boolean>> =
+        api.checkFollow(authorDocumentIds)
+
+    suspend fun checkBlock(authorDocumentIds: List<String>): Result<Map<String, Boolean>> =
+        api.checkBlock(authorDocumentIds)
+
+    suspend fun recordArticleView(documentId: String): Result<Unit> =
+        api.recordArticleView(documentId)
+
+    suspend fun createReport(
+        targetType: String,
+        targetId: String,
+        reason: String,
+        detail: String? = null
+    ): Result<ReportResult> = api.createReport(targetType, targetId, reason, detail)
+
+    suspend fun toggleBlock(authorDocumentId: String): Result<BlockResult> =
+        api.toggleBlock(authorDocumentId)
 
     suspend fun publishArticle(
         title: String,

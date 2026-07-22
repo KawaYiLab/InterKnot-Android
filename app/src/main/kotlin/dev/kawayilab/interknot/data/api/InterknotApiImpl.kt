@@ -7,6 +7,8 @@ import dev.kawayilab.interknot.data.api.dto.ArticleRefDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
 import dev.kawayilab.interknot.data.api.dto.AuthorSearchItemDto
 import dev.kawayilab.interknot.data.api.dto.BioUpdateResultDto
+import dev.kawayilab.interknot.data.api.dto.BlockCheckResultDto
+import dev.kawayilab.interknot.data.api.dto.BlockResultDto
 import dev.kawayilab.interknot.data.api.dto.CategoryDto
 import dev.kawayilab.interknot.data.api.dto.CodeResultDto
 import dev.kawayilab.interknot.data.api.dto.CommentDto
@@ -38,6 +40,7 @@ import dev.kawayilab.interknot.data.api.dto.ProfileDataDto
 import dev.kawayilab.interknot.data.api.dto.ProfileStatsDto
 import dev.kawayilab.interknot.data.api.dto.ResetPasswordResultDto
 import dev.kawayilab.interknot.data.api.dto.RenewTokenResponseDto
+import dev.kawayilab.interknot.data.api.dto.ReportResponseDto
 import dev.kawayilab.interknot.data.api.dto.SearchSuggestionDto
 import dev.kawayilab.interknot.data.api.dto.SignedUploadResultDto
 import dev.kawayilab.interknot.data.api.dto.SingleDto
@@ -52,6 +55,7 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
@@ -70,6 +74,7 @@ import dev.kawayilab.interknot.model.NotificationPage
 import dev.kawayilab.interknot.model.PinnedArticlesResponse
 import dev.kawayilab.interknot.model.PinnedUpdateResult
 import dev.kawayilab.interknot.model.Profile
+import dev.kawayilab.interknot.model.ReportResult
 import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.SignedUploadResult
 import dev.kawayilab.interknot.model.TripleResult
@@ -429,6 +434,41 @@ class InterknotApiImpl @Inject constructor(
             parameter("limit", limit)
         }
         response.data.map { it.toDomain() }
+    }
+
+    override suspend fun createReport(
+        targetType: String,
+        targetId: String,
+        reason: String,
+        detail: String?
+    ): Result<ReportResult> = runCatching {
+        val response: SingleDto<ReportResponseDto> = client.authPost("reports") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "targetType" to targetType,
+                    "targetId" to targetId,
+                    "reason" to reason,
+                    "detail" to (detail ?: "")
+                )
+            )
+        }
+        response.data.toDomain()
+    }
+
+    override suspend fun toggleBlock(authorDocumentId: String): Result<BlockResult> = runCatching {
+        val response: BlockResultDto = client.authPost("user-blocks/toggle") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("authorDocumentId" to authorDocumentId))
+        }
+        response.toDomain()
+    }
+
+    override suspend fun checkBlock(authorDocumentIds: List<String>): Result<Map<String, Boolean>> = runCatching {
+        val response: BlockCheckResultDto = client.authGet("user-blocks/check") {
+            parameter("authorIds", authorDocumentIds.joinToString(","))
+        }
+        response.data
     }
 
     override suspend fun searchArticles(

@@ -5,6 +5,7 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
@@ -22,6 +23,7 @@ import dev.kawayilab.interknot.model.NotificationPage
 import dev.kawayilab.interknot.model.PinnedArticlesResponse
 import dev.kawayilab.interknot.model.PinnedUpdateResult
 import dev.kawayilab.interknot.model.Profile
+import dev.kawayilab.interknot.model.ReportResult
 import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.SignedUploadResult
 import dev.kawayilab.interknot.model.TripleResult
@@ -120,6 +122,11 @@ interface InterknotApi {
     suspend fun toggleFollow(authorDocumentId: String): Result<FollowResult>
     suspend fun checkFollow(authorDocumentIds: List<String>): Result<Map<String, Boolean>>
     suspend fun getFollowing(start: Int, limit: Int): Result<List<Author>>
+
+    // Report / Block
+    suspend fun createReport(targetType: String, targetId: String, reason: String, detail: String? = null): Result<ReportResult>
+    suspend fun toggleBlock(authorDocumentId: String): Result<BlockResult>
+    suspend fun checkBlock(authorDocumentIds: List<String>): Result<Map<String, Boolean>>
 
     // Profiles
     suspend fun getProfile(documentId: String): Result<Profile>
