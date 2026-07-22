@@ -25,3 +25,4 @@ gen/
 out/
 app/release/
 app/debug/
+/.idea
