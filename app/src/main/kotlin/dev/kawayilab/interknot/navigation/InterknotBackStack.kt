@@ -9,7 +9,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 
 @Stable
 class InterknotBackStack(initialRoute: InterknotRoute = Home) {
-    val topLevelRoutes: List<InterknotRoute> = listOf(Home, Knock, Create, Level, Profile)
+    val topLevelRoutes: List<InterknotRoute> = listOf(Home, Knock, Level, Profile)
     private val _backStack: SnapshotStateList<InterknotRoute> = mutableStateListOf(initialRoute)
     val backStack: List<InterknotRoute> get() = _backStack
 

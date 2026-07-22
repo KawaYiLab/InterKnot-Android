@@ -1,10 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 package dev.kawayilab.interknot.ui.screens.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,15 +16,17 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,10 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kawayilab.interknot.ui.components.post.PostCard
 import dev.kawayilab.interknot.ui.theme.Background
-import dev.kawayilab.interknot.ui.theme.Border
-import dev.kawayilab.interknot.ui.theme.CardInner
 import dev.kawayilab.interknot.ui.theme.InterknotYellow
-import dev.kawayilab.interknot.ui.theme.SearchBackground
 import dev.kawayilab.interknot.ui.theme.TextPrimary
 import dev.kawayilab.interknot.ui.theme.TextSecondary
 
@@ -118,8 +112,8 @@ fun HomeScreen(
                     columns = StaggeredGridCells.Adaptive(170.dp),
                     state = gridState,
                     contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalItemSpacing = 14.dp,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalItemSpacing = 12.dp,
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(articles, key = { it.documentId }) { article ->
@@ -240,8 +234,8 @@ private fun SearchField(
             )
         },
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = SearchBackground,
-            unfocusedContainerColor = SearchBackground,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             disabledIndicatorColor = Color.Transparent,
@@ -267,32 +261,35 @@ private fun CategoryTabs(
     ) {
         items(categories.size) { index ->
             val selected = index == selectedIndex
-            val bg = if (selected) InterknotYellow else CardInner
-            val borderColor = if (selected) InterknotYellow else Border
-            val textColor = if (selected) Background else TextPrimary
-
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .border(2.dp, borderColor, CircleShape)
-                    .background(bg)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onSelect(index) }
+            FilterChip(
+                selected = selected,
+                onClick = { onSelect(index) },
+                label = {
+                    Text(
+                        text = categories[index],
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = categories[index],
-                    color = textColor,
-                    fontSize = MaterialTheme.typography.labelLarge.fontSize,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                },
+                leadingIcon = if (selected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else null,
+                shape = RoundedCornerShape(999.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    labelColor = MaterialTheme.colorScheme.onSurface,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                 )
-            }
+            )
         }
     }
 }
