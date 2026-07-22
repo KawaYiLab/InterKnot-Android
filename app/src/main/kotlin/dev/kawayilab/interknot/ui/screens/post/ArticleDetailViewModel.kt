@@ -24,6 +24,9 @@ class ArticleDetailViewModel @Inject constructor(
     private val _comments = MutableStateFlow<List<Comment>>(emptyList())
     val comments: StateFlow<List<Comment>> = _comments.asStateFlow()
 
+    private val _pinnedComment = MutableStateFlow<Comment?>(null)
+    val pinnedComment: StateFlow<Comment?> = _pinnedComment.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -61,6 +64,9 @@ class ArticleDetailViewModel @Inject constructor(
                 .onSuccess { page ->
                     commentsTotal = page.total
                     commentsHasMore = page.hasMore
+                    if (reset) {
+                        _pinnedComment.value = page.pinned
+                    }
                     _comments.value = if (reset) page.items else _comments.value + page.items
                 }
                 .onFailure { /* silently fail for comments, detail page still shows article */ }
@@ -107,6 +113,11 @@ class ArticleDetailViewModel @Inject constructor(
     }
 
     private fun updateCommentLike(documentId: String, liked: Boolean, likesCount: Int) {
+        _pinnedComment.value?.let { pinned ->
+            if (pinned.documentId == documentId) {
+                _pinnedComment.value = pinned.copy(liked = liked, likesCount = likesCount)
+            }
+        }
         _comments.value = _comments.value.map { c ->
             if (c.documentId == documentId) {
                 c.copy(liked = liked, likesCount = likesCount)

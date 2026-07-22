@@ -1,15 +1,19 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 package dev.kawayilab.interknot.ui.screens.post
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,16 +28,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,18 +61,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Comment
+import dev.kawayilab.interknot.ui.components.common.ErrorState
 import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
+import dev.kawayilab.interknot.ui.theme.Motion
+import dev.kawayilab.interknot.ui.theme.Spacing
 
 @Composable
 fun PostDetailScreen(
@@ -78,11 +90,11 @@ fun PostDetailScreen(
 ) {
     val article by viewModel.article.collectAsStateWithLifecycle()
     val comments by viewModel.comments.collectAsStateWithLifecycle()
+    val pinnedComment by viewModel.pinnedComment.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val isLoadingComments by viewModel.isLoadingComments.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     var comment by remember { mutableStateOf("") }
-    var commentError by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(postId) {
@@ -118,17 +130,12 @@ fun PostDetailScreen(
                 onCommentChange = { comment = it },
                 onSend = {
                     viewModel.sendComment(comment) { result ->
-                        result.onSuccess {
-                            comment = ""
-                            commentError = null
-                        }.onFailure { commentError = it.message }
+                        result.onSuccess { comment = "" }
                     }
                 },
                 article = article,
                 onLike = { viewModel.toggleLikeArticle {} },
-                onGiveDenny = { viewModel.giveDenny { result ->
-                    result.onFailure { commentError = it.message }
-                } }
+                onGiveDenny = { viewModel.giveDenny { } }
             )
         }
     ) { innerPadding ->
@@ -141,65 +148,88 @@ fun PostDetailScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = 16.dp,
-                    end = 16.dp,
-                    bottom = navBottom + 8.dp
+                    start = Spacing.lg,
+                    top = Spacing.lg,
+                    end = Spacing.lg,
+                    bottom = navBottom + Spacing.lg
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 when {
                     isLoading && article == null -> {
                         item {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 120.dp)
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 120.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
                         }
                     }
 
                     error != null && article == null -> {
                         item {
-                            Text(
-                                text = error ?: "加载失败",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(top = 120.dp)
+                            ErrorState(
+                                message = error ?: "加载失败",
+                                onRetry = { viewModel.load(postId, forceRefresh = true) }
                             )
                         }
                     }
 
                     article != null -> {
-                        item {
-                            ArticleDetailContent(article = article!!)
+                        item { ArticleDetailContent(article = article!!) }
+
+                        // Pinned comment
+                        pinnedComment?.let { pinned ->
+                            item {
+                                PinnedBadge()
+                            }
+                            item {
+                                CommentItem(
+                                    comment = pinned,
+                                    onLike = { viewModel.toggleLikeComment(pinned) {} }
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(Spacing.sm)) }
                         }
-                    }
-                }
 
-                if (comments.isNotEmpty() || isLoadingComments) {
-                    item {
-                        Text(
-                            text = "评论",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
+                        // Comment section header
+                        if (comments.isNotEmpty() || isLoadingComments || pinnedComment == null) {
+                            item {
+                                Text(
+                                    text = "评论 ${article!!.commentsCount}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(top = Spacing.sm)
+                                )
+                            }
+                        }
 
-                    items(comments, key = { it.documentId }) { comment ->
-                        CommentItem(
-                            comment = comment,
-                            onLike = { viewModel.toggleLikeComment(comment) {} }
-                        )
-                    }
-
-                    if (isLoadingComments) {
-                        item {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.primary
+                        items(comments, key = { it.documentId }) { comment ->
+                            CommentItem(
+                                comment = comment,
+                                onLike = { viewModel.toggleLikeComment(comment) {} }
                             )
+                        }
+
+                        if (isLoadingComments) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -208,11 +238,10 @@ fun PostDetailScreen(
     }
 }
 
+// ── Top bar with author header ──
+
 @Composable
-private fun PostDetailTopBar(
-    article: Article,
-    onBack: () -> Unit
-) {
+private fun PostDetailTopBar(article: Article, onBack: () -> Unit) {
     TopAppBar(
         title = { AuthorHeader(article = article) },
         navigationIcon = {
@@ -236,21 +265,31 @@ private fun PostDetailTopBar(
 private fun AuthorHeader(article: Article) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(36.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = article.author?.avatarUrl,
-                contentDescription = article.author?.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            val avatarUrl = article.author?.avatarUrl
+            if (avatarUrl != null) {
+                SubcomposeAsyncImage(
+                    model = avatarUrl,
+                    contentDescription = article.author?.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when (val state = painter.state) {
+                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                        else -> DefaultAvatarIcon(20)
+                    }
+                }
+            } else {
+                DefaultAvatarIcon(20)
+            }
         }
 
         Column(modifier = Modifier.weight(1f)) {
@@ -258,10 +297,14 @@ private fun AuthorHeader(article: Article) {
                 text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
                 Surface(
                     shape = MaterialTheme.shapes.extraSmall,
                     color = MaterialTheme.colorScheme.primary,
@@ -270,11 +313,10 @@ private fun AuthorHeader(article: Article) {
                     Text(
                         text = "Lv.${article.author?.level ?: 1}",
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 1.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = formatTime(article.publishedAt ?: article.createdAt),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -285,20 +327,25 @@ private fun AuthorHeader(article: Article) {
     }
 }
 
+// ── Article content ──
+
 @Composable
 private fun ArticleDetailContent(article: Article) {
+    val extendedColors = LocalInterknotColors.current
+    val titleColor = if (article.isRead) extendedColors.titleRead else MaterialTheme.colorScheme.onSurface
+
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         CoverPager(article = article)
 
-        val extendedColors = LocalInterknotColors.current
         val category = article.category?.name?.takeIf { it.isNotBlank() }
         Text(
             text = if (category != null) "[$category] ${article.title}" else article.title,
             style = MaterialTheme.typography.headlineSmall,
-            color = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
+            color = titleColor,
+            fontWeight = FontWeight.SemiBold
         )
 
         Text(
@@ -306,8 +353,32 @@ private fun ArticleDetailContent(article: Article) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
+
+        // Stats row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
+        ) {
+            Text(
+                text = "${formatCount(article.views)} 浏览",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${formatCount(article.likesCount)} 点赞",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "${formatCount(article.commentsCount)} 评论",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
+
+// ── Cover image carousel ──
 
 @Composable
 private fun CoverPager(article: Article) {
@@ -316,60 +387,58 @@ private fun CoverPager(article: Article) {
             article.coverUrl?.let { listOf(it) } ?: emptyList()
         }
     }
-
     if (images.isEmpty()) return
 
+    val firstImage = article.coverImages.firstOrNull()
+    val aspectRatio = if (firstImage?.width != null && firstImage.height != null && firstImage.height > 0) {
+        firstImage.width.toFloat() / firstImage.height.toFloat()
+    } else if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
+        article.coverWidth.toFloat() / article.coverHeight.toFloat()
+    } else {
+        16f / 9f
+    }
+
     if (images.size == 1) {
-        CoverImage(images[0], article.title)
+        CoverImage(images[0], article.title, aspectRatio)
     } else {
         val pagerState = rememberPagerState(pageCount = { images.size })
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(260.dp)
+                .height(280.dp)
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                pageSpacing = 8.dp,
-                contentPadding = PaddingValues(horizontal = 4.dp)
+                modifier = Modifier.fillMaxSize()
             ) { page ->
-                CoverImage(images[page], article.title)
+                CoverImage(images[page], article.title, aspectRatio)
             }
 
-            Row(
+            // "1 / 5" text indicator
+            Surface(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(Spacing.sm),
+                shape = MaterialTheme.shapes.extraSmall,
+                color = Color.Black.copy(alpha = 0.5f)
             ) {
-                repeat(images.size) { index ->
-                    val isSelected = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .height(6.dp)
-                            .width(if (isSelected) 18.dp else 6.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                }
-                            )
-                    )
-                }
+                Text(
+                    text = "${pagerState.currentPage + 1} / ${images.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = 2.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CoverImage(url: String?, contentDescription: String?) {
+private fun CoverImage(url: String?, contentDescription: String?, aspectRatio: Float) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .aspectRatio(aspectRatio)
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
@@ -381,6 +450,8 @@ private fun CoverImage(url: String?, contentDescription: String?) {
         )
     }
 }
+
+// ── Bottom action bar ──
 
 @Composable
 private fun ArticleActionsBar(
@@ -395,96 +466,128 @@ private fun ArticleActionsBar(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        windowInsets = WindowInsets.navigationBars,
-        actions = {
-            TextField(
-                value = comment,
-                onValueChange = onCommentChange,
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                shape = MaterialTheme.shapes.extraLarge,
-                placeholder = {
-                    Text(
-                        text = "评论一下...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        windowInsets = WindowInsets.navigationBars
+    ) {
+        TextField(
+            value = comment,
+            onValueChange = onCommentChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            shape = MaterialTheme.shapes.extraLarge,
+            placeholder = {
+                Text(
+                    text = "评论一下...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onSend() }),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary
+            ),
+            trailingIcon = {
+                IconButton(onClick = onSend) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "发送",
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
-                trailingIcon = {
-                    IconButton(onClick = onSend) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "发送",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
-            )
+            }
+        )
 
-            ActionIcon(
-                icon = if (article?.liked == true) Icons.Default.ThumbUp else Icons.Default.ThumbUp,
-                contentDescription = "点赞",
-                onClick = onLike,
-                tint = if (article?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ActionIcon(
-                icon = if (article?.favorited == true) Icons.Default.Star else Icons.Default.StarBorder,
-                contentDescription = "收藏",
-                onClick = {},
-                tint = if (article?.favorited == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ActionIcon(
-                icon = if (article?.liked == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "喜欢",
-                onClick = onLike,
-                tint = if (article?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ActionIcon(
-                icon = if (article?.hasGivenDenny == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "投丁尼",
-                onClick = onGiveDenny,
-                tint = if (article?.hasGivenDenny == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        ActionButton(
+            icon = if (article?.liked == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            label = "点赞",
+            count = article?.likesCount,
+            onClick = onLike,
+            active = article?.liked == true
+        )
+        ActionButton(
+            icon = if (article?.favorited == true) Icons.Filled.Star else Icons.Outlined.StarBorder,
+            label = "收藏",
+            count = article?.favoritesCount,
+            onClick = {},
+            active = article?.favorited == true
+        )
 
-            Text(
-                text = "丁尼 ${article?.dennyCount ?: 0}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            ActionIcon(
-                icon = Icons.Default.MoreVert,
-                contentDescription = "更多",
-                onClick = {}
-            )
+        // Denny
+        val dennyActive = article?.hasGivenDenny == true
+        Surface(
+            modifier = Modifier.clip(MaterialTheme.shapes.extraSmall),
+            color = if (dennyActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+        ) {
+            IconButton(onClick = onGiveDenny) {
+                Text(
+                    text = "丁尼 ${article?.dennyCount ?: 0}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (dennyActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
-    )
+    }
 }
 
 @Composable
-private fun ActionIcon(
-    icon: ImageVector,
-    contentDescription: String,
+private fun ActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    count: Int?,
     onClick: () -> Unit,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    active: Boolean
 ) {
     IconButton(onClick = onClick) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            if (count != null && count > 0) {
+                Text(
+                    text = formatCount(count),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// ── Comment section ──
+
+@Composable
+private fun PinnedBadge() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
         Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = tint
+            imageVector = Icons.Filled.PushPin,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = "置顶",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -495,15 +598,20 @@ private fun CommentItem(
     onLike: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val extendedColors = LocalInterknotColors.current
+    val likeScale by animateFloatAsState(
+        targetValue = if (comment.liked) 1.15f else 1f,
+        animationSpec = Motion.bounceSpec(),
+        label = "commentLike"
+    )
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(vertical = Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Avatar
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -511,61 +619,112 @@ private fun CommentItem(
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
-                AsyncImage(
-                    model = comment.author?.avatarUrl,
-                    contentDescription = comment.author?.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val avatarUrl = comment.author?.avatarUrl
+                if (avatarUrl != null) {
+                    SubcomposeAsyncImage(
+                        model = avatarUrl,
+                        contentDescription = comment.author?.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        when (val state = painter.state) {
+                            is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                            else -> DefaultAvatarIcon(16)
+                        }
+                    }
+                } else {
+                    DefaultAvatarIcon(16)
+                }
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
+
+            // Name + floor
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = comment.author?.name ?: "匿名",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = comment.floor?.let { "#${it}楼" } ?: "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onLike) {
-                    Icon(
-                        imageVector = if (comment.liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "点赞",
-                        tint = if (comment.liked) MaterialTheme.colorScheme.primary else extendedColors.titleRead,
-                        modifier = Modifier.size(18.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Text(
+                        text = comment.author?.name ?: "匿名",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    comment.floor?.let { floor ->
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Text(
+                                text = "#$floor",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = Spacing.xs, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
                 Text(
-                    text = comment.likesCount.toString(),
+                    text = formatTime(comment.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            // Like button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                IconButton(onClick = onLike) {
+                    Icon(
+                        imageVector = if (comment.liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "点赞",
+                        tint = if (comment.liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp).scale(likeScale)
+                    )
+                }
+                if (comment.likesCount > 0) {
+                    Text(
+                        text = formatCount(comment.likesCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
+        // Comment content
         Text(
             text = comment.content,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = 40.dp)
         )
 
+        // Nested replies with left border line
         if (comment.replies.isNotEmpty()) {
-            Column(
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(start = 40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
             ) {
-                comment.replies.forEach { reply ->
-                    ReplyItem(reply = reply)
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                Column(
+                    modifier = Modifier
+                        .padding(start = Spacing.sm)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    comment.replies.forEach { reply ->
+                        ReplyItem(reply = reply)
+                    }
                 }
             }
         }
@@ -574,48 +733,77 @@ private fun CommentItem(
 
 @Composable
 private fun ReplyItem(reply: Comment, modifier: Modifier = Modifier) {
-    val extendedColors = LocalInterknotColors.current
+    val likeScale by animateFloatAsState(
+        targetValue = if (reply.liked) 1.15f else 1f,
+        animationSpec = Motion.bounceSpec(),
+        label = "replyLike"
+    )
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = reply.author?.name ?: "匿名",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             Text(
                 text = formatTime(reply.createdAt),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.weight(1f))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Icon(
+                    imageVector = if (reply.liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "点赞",
+                    tint = if (reply.liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp).scale(likeScale)
+                )
+                if (reply.likesCount > 0) {
+                    Text(
+                        text = formatCount(reply.likesCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
         Text(
             text = reply.content,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = if (reply.liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "点赞",
-                tint = if (reply.liked) MaterialTheme.colorScheme.primary else extendedColors.titleRead,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = reply.likesCount.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
+}
+
+// ── Helpers ──
+
+@Composable
+private fun DefaultAvatarIcon(size: Int) {
+    Icon(
+        imageVector = Icons.Filled.Person,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+        modifier = Modifier.size(size.dp)
+    )
 }
 
 private fun formatTime(iso: String?): String {
     return iso?.take(10) ?: ""
+}
+
+private fun formatCount(count: Int): String {
+    return when {
+        count >= 10_000 -> "${count / 10_000}w"
+        count >= 1_000 -> "${count / 1_000}k"
+        else -> count.toString()
+    }
 }
