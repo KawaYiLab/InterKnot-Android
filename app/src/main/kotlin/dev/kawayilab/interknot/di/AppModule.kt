@@ -11,6 +11,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.http.URLProtocol
+import io.ktor.http.Url
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
@@ -33,7 +36,13 @@ object AppModule {
             json(json)
         }
         defaultRequest {
-            url(BuildConfig.API_BASE_URL)
+            val base = Url(BuildConfig.API_BASE_URL)
+            url {
+                protocol = base.protocol
+                host = base.host
+                port = base.port
+                encodedPath = base.encodedPath
+            }
         }
     }
 
