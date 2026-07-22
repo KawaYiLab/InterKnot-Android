@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -16,17 +17,31 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kawayilab.interknot.model.User
 
 @Composable
 fun ProfileScreen(
     user: User?,
     onLogout: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val denny by viewModel.denny.collectAsStateWithLifecycle()
+    val dennyGiven by viewModel.dennyGiven.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+
+    LaunchedEffect(user) {
+        if (user != null) viewModel.loadBalance()
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.statusBars,
@@ -60,8 +75,32 @@ fun ProfileScreen(
                     text = "等级：Lv.${user.level ?: 1}  经验：${user.exp ?: 0}",
                     style = MaterialTheme.typography.bodyLarge
                 )
+                Text(
+                    text = "丁尼余额：$denny  已投出：$dennyGiven",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                if (isLoading) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+
+                error?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 Button(
-                    onClick = onLogout,
+                    onClick = { viewModel.loadBalance() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("刷新余额")
+                }
+
+                Button(
+                    onClick = { viewModel.logout(onComplete = onLogout) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("退出登录")

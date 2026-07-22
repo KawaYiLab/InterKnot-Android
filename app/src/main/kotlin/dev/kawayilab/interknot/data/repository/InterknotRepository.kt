@@ -1,5 +1,7 @@
 package dev.kawayilab.interknot.data.repository
 
+import dev.kawayilab.interknot.data.api.DennyBalance
+import dev.kawayilab.interknot.data.api.DennyGiveResult
 import dev.kawayilab.interknot.data.api.InterknotApi
 import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.data.local.UserPreferences
@@ -8,6 +10,8 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.KnockConversation
+import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
 import javax.inject.Inject
@@ -133,4 +137,17 @@ class InterknotRepository @Inject constructor(
         category: String? = null,
         limit: Int = 8
     ): Result<List<dev.kawayilab.interknot.data.api.SearchSuggestion>> = api.suggestArticles(query, category, limit)
+
+    suspend fun getKnockConversations(): Result<List<KnockConversation>> = api.getKnockConversations()
+
+    suspend fun getKnockMessages(conversationId: String, cursor: String? = null, limit: Int = 50): Result<List<KnockNotification>> =
+        api.getKnockMessages(conversationId, cursor, limit).map { it.items }
+
+    suspend fun markConversationRead(conversationId: String): Result<Int> = api.markConversationRead(conversationId)
+
+    suspend fun getUnreadNotificationCount(): Result<Int> = api.getUnreadNotificationCount()
+
+    suspend fun getDennyBalance(): Result<DennyBalance> = api.getDennyBalance()
+
+    suspend fun giveDenny(articleId: String, message: String? = null): Result<DennyGiveResult> = api.giveDenny(articleId, message)
 }

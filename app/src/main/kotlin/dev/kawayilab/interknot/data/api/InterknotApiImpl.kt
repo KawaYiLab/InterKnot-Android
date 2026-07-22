@@ -7,16 +7,25 @@ import dev.kawayilab.interknot.data.api.dto.CategoryDto
 import dev.kawayilab.interknot.data.api.dto.CodeResultDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
 import dev.kawayilab.interknot.data.api.dto.DataListDto
+import dev.kawayilab.interknot.data.api.dto.DennyBalanceDto
+import dev.kawayilab.interknot.data.api.dto.DennyGiveResponseDto
+import dev.kawayilab.interknot.data.api.dto.KnockConversationDto
+import dev.kawayilab.interknot.data.api.dto.KnockMessagePageDto
+import dev.kawayilab.interknot.data.api.dto.KnockNotificationDto
 import dev.kawayilab.interknot.data.api.dto.LikeResultDto
+import dev.kawayilab.interknot.data.api.dto.MarkReadResultDto
 import dev.kawayilab.interknot.data.api.dto.PagedListDto
 import dev.kawayilab.interknot.data.api.dto.SearchSuggestionDto
 import dev.kawayilab.interknot.data.api.dto.SingleDto
+import dev.kawayilab.interknot.data.api.dto.UnreadCountDto
 import dev.kawayilab.interknot.data.api.dto.UserDto
 import dev.kawayilab.interknot.data.api.dto.toDomain
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.KnockConversation
+import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
 import io.ktor.client.HttpClient
@@ -214,6 +223,69 @@ class InterknotApiImpl @Inject constructor(
             if (!category.isNullOrBlank()) parameter("category", category)
         }
         response.data.map { it.toDomain() }
+    }
+
+    override suspend fun getKnockConversations(): Result<List<dev.kawayilab.interknot.model.KnockConversation>> = runCatching {
+        val response: DataListDto<KnockConversationDto> = client.authGet("knock/conversations")
+        response.data.map { it.toDomain() }
+    }
+
+    override suspend fun getKnockMessages(
+        conversationId: String,
+        cursor: String?,
+        limit: Int
+    ): Result<KnockMessagePage> = runCatching {
+        val response: KnockMessagePageDto = client.authGet("knock/conversations/$conversationId/messages") {
+            parameter("limit", limit)
+            if (!cursor.isNullOrBlank()) parameter("cursor", cursor)
+        }
+        response.toDomain()
+    }
+
+    override suspend fun markConversationRead(conversationId: String): Result<Int> = runCatching {
+        val response: MarkReadResultDto = client.authPost("knock/conversations/$conversationId/mark-read") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        response.updated ?: 0
+    }
+
+    override suspend fun getUnreadNotificationCount(): Result<Int> = runCatching {
+        val response: UnreadCountDto = client.authGet("notifications/unread-count")
+        response.count
+    }
+
+    override suspend fun getDennyBalance(): Result<DennyBalance> = runCatching {
+        val response: DennyBalanceDto = client.authGet("user-denny")
+        DennyBalance(
+            denny = response.denny,
+            dennyGiven = response.dennyGiven,
+            recentLogs = response.recentLogs.map {
+                dev.kawayilab.interknot.data.api.DennyLog(
+                    action = it.action,
+                    amount = it.amount,
+                    balance = it.balance,
+                    description = it.description,
+                    createdAt = it.createdAt
+                )
+            }
+        )
+    }
+
+    override suspend fun giveDenny(articleId: String, message: String?): Result<DennyGiveResult> = runCatching {
+        val response: DennyGiveResponseDto = client.authPost("user-denny/give") {
+            contentType(ContentType.Application.Json)
+            setBody(buildMap {
+                put("articleId", articleId)
+                if (!message.isNullOrBlank()) put("message", message)
+            })
+        }
+        DennyGiveResult(
+            success = response.success,
+            message = response.message,
+            newBalance = response.newBalance,
+            articleDennyCount = response.articleDennyCount
+        )
     }
 }
 

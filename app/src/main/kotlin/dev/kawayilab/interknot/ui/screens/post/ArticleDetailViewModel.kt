@@ -117,4 +117,22 @@ class ArticleDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun giveDenny(message: String? = null, onResult: (Result<Unit>) -> Unit) {
+        val documentId = currentDocumentId ?: return
+        viewModelScope.launch {
+            repository.giveDenny(documentId, message)
+                .onSuccess { result ->
+                    val current = _article.value
+                    if (current != null) {
+                        _article.value = current.copy(
+                            dennyCount = result.articleDennyCount ?: (current.dennyCount + 1),
+                            hasGivenDenny = true
+                        )
+                    }
+                    onResult(Result.success(Unit))
+                }
+                .onFailure { onResult(Result.failure(it)) }
+        }
+    }
 }

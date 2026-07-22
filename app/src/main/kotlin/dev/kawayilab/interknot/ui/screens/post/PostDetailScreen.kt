@@ -125,7 +125,10 @@ fun PostDetailScreen(
                     }
                 },
                 article = article,
-                onLike = { viewModel.toggleLikeArticle {} }
+                onLike = { viewModel.toggleLikeArticle {} },
+                onGiveDenny = { viewModel.giveDenny { result ->
+                    result.onFailure { commentError = it.message }
+                } }
             )
         }
     ) { innerPadding ->
@@ -385,7 +388,8 @@ private fun ArticleActionsBar(
     onCommentChange: (String) -> Unit,
     onSend: () -> Unit,
     article: Article?,
-    onLike: () -> Unit
+    onLike: () -> Unit,
+    onGiveDenny: () -> Unit
 ) {
     BottomAppBar(
         modifier = Modifier.fillMaxWidth(),
@@ -447,6 +451,19 @@ private fun ArticleActionsBar(
                 onClick = onLike,
                 tint = if (article?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
+            ActionIcon(
+                icon = if (article?.hasGivenDenny == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = "投丁尼",
+                onClick = onGiveDenny,
+                tint = if (article?.hasGivenDenny == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = "丁尼 ${article?.dennyCount ?: 0}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             ActionIcon(
                 icon = Icons.Default.MoreVert,
                 contentDescription = "更多",

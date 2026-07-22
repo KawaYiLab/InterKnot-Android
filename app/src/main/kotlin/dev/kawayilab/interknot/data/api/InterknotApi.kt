@@ -5,6 +5,8 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.KnockConversation
+import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
 
@@ -45,7 +47,40 @@ interface InterknotApi {
     ): Result<ArticlePage>
     suspend fun getCategories(): Result<List<Category>>
     suspend fun suggestArticles(query: String, category: String? = null, limit: Int = 8): Result<List<SearchSuggestion>>
+    suspend fun getKnockConversations(): Result<List<KnockConversation>>
+    suspend fun getKnockMessages(conversationId: String, cursor: String? = null, limit: Int = 50): Result<KnockMessagePage>
+    suspend fun markConversationRead(conversationId: String): Result<Int>
+    suspend fun getUnreadNotificationCount(): Result<Int>
+    suspend fun getDennyBalance(): Result<DennyBalance>
+    suspend fun giveDenny(articleId: String, message: String? = null): Result<DennyGiveResult>
 }
+
+data class DennyBalance(
+    val denny: Int,
+    val dennyGiven: Int,
+    val recentLogs: List<DennyLog> = emptyList()
+)
+
+data class DennyLog(
+    val action: String?,
+    val amount: Int?,
+    val balance: Int?,
+    val description: String?,
+    val createdAt: String?
+)
+
+data class DennyGiveResult(
+    val success: Boolean,
+    val message: String?,
+    val newBalance: Int?,
+    val articleDennyCount: Int?
+)
+
+data class KnockMessagePage(
+    val items: List<KnockNotification>,
+    val nextCursor: String? = null,
+    val hasMore: Boolean = false
+)
 
 data class SearchSuggestion(
     val documentId: String,
