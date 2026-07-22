@@ -23,7 +23,7 @@ android {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "API_BASE_URL", "\"https://api.interknot.example/api/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://43.248.77.159:31338/api/\"")
     }
 
     buildTypes {
