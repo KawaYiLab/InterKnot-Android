@@ -12,6 +12,11 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.Benefits
+import dev.kawayilab.interknot.model.ExamReview
+import dev.kawayilab.interknot.model.ExamStartResult
+import dev.kawayilab.interknot.model.ExamStatus
+import dev.kawayilab.interknot.model.ExamSubmitResult
 import dev.kawayilab.interknot.model.FavoriteResult
 import dev.kawayilab.interknot.model.FollowResult
 import dev.kawayilab.interknot.model.KnockConversation
@@ -154,11 +159,12 @@ class InterknotRepository @Inject constructor(
         title: String,
         text: String,
         category: String? = null,
-        isAnonymous: Boolean = false
+        isAnonymous: Boolean = false,
+        coverDocumentIds: List<String>? = null
     ): Result<String> {
         val authorId = user.value?.authorDocumentId ?: return Result.failure(IllegalStateException("未登录"))
         return runCatching {
-            val documentId = api.createArticleDraft(title, text, authorId, category, isAnonymous).getOrThrow()
+            val documentId = api.createArticleDraft(title, text, authorId, category, isAnonymous, coverDocumentIds).getOrThrow()
             api.publishArticle(documentId).getOrThrow()
             documentId
         }
@@ -206,6 +212,12 @@ class InterknotRepository @Inject constructor(
     suspend fun clearSearchHistory() = preferences.clearSearchHistory()
 
     suspend fun getCategories(): Result<List<Category>> = api.getCategories()
+
+    suspend fun getExamStatus(): Result<ExamStatus> = api.getExamStatus()
+    suspend fun startExam(): Result<ExamStartResult> = api.startExam()
+    suspend fun submitExam(attemptId: String, answers: Map<String, List<String>>): Result<ExamSubmitResult> = api.submitExam(attemptId, answers)
+    suspend fun getExamReview(attemptId: String? = null): Result<ExamReview> = api.getExamReview(attemptId)
+    suspend fun getBenefits(): Result<Benefits> = api.getBenefits()
 
     suspend fun suggestArticles(
         query: String,

@@ -15,7 +15,12 @@ import dev.kawayilab.interknot.data.api.dto.CommentDto
 import dev.kawayilab.interknot.data.api.dto.CommentListMetaDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
 import dev.kawayilab.interknot.data.api.dto.DataListDto
+import dev.kawayilab.interknot.data.api.dto.BenefitsDto
 import dev.kawayilab.interknot.data.api.dto.DennyBalanceDto
+import dev.kawayilab.interknot.data.api.dto.ExamReviewDto
+import dev.kawayilab.interknot.data.api.dto.ExamStartResultDto
+import dev.kawayilab.interknot.data.api.dto.ExamStatusDto
+import dev.kawayilab.interknot.data.api.dto.ExamSubmitResultDto
 import dev.kawayilab.interknot.data.api.dto.DennyGiveResponseDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteListItemDto
@@ -60,6 +65,11 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.ExamReview
+import dev.kawayilab.interknot.model.ExamStartResult
+import dev.kawayilab.interknot.model.ExamStatus
+import dev.kawayilab.interknot.model.ExamSubmitResult
+import dev.kawayilab.interknot.model.Benefits
 import dev.kawayilab.interknot.model.FavoriteRecord
 import dev.kawayilab.interknot.model.FavoriteResult
 import dev.kawayilab.interknot.model.FileInfo
@@ -202,7 +212,8 @@ class InterknotApiImpl @Inject constructor(
         text: String,
         authorDocumentId: String,
         category: String?,
-        isAnonymous: Boolean
+        isAnonymous: Boolean,
+        coverDocumentIds: List<String>?
     ): Result<String> = runCatching {
         val response: SingleDto<ArticleDetailDto> = client.authPost("articles") {
             parameter("status", "draft")
@@ -215,6 +226,9 @@ class InterknotApiImpl @Inject constructor(
                         put("author", mapOf("connect" to listOf(mapOf("documentId" to authorDocumentId))))
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
+                        if (!coverDocumentIds.isNullOrEmpty()) {
+                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                        }
                     }
                 )
             )
@@ -227,7 +241,8 @@ class InterknotApiImpl @Inject constructor(
         title: String,
         text: String,
         category: String?,
-        isAnonymous: Boolean
+        isAnonymous: Boolean,
+        coverDocumentIds: List<String>?
     ): Result<Article> = runCatching {
         val response: SingleDto<ArticleDetailDto> = client.authPut("articles/$documentId") {
             contentType(ContentType.Application.Json)
@@ -238,6 +253,9 @@ class InterknotApiImpl @Inject constructor(
                         put("text", text)
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
+                        if (!coverDocumentIds.isNullOrEmpty()) {
+                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                        }
                     }
                 )
             )
@@ -644,6 +662,42 @@ class InterknotApiImpl @Inject constructor(
                 if (!message.isNullOrBlank()) put("message", message)
             })
         }
+        response.toDomain()
+    }
+
+    override suspend fun getExamStatus(): Result<ExamStatus> = runCatching {
+        val response: ExamStatusDto = client.authGet("exam/status")
+        response.toDomain()
+    }
+
+    override suspend fun startExam(): Result<ExamStartResult> = runCatching {
+        val response: ExamStartResultDto = client.authPost("exam/start") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        response.toDomain()
+    }
+
+    override suspend fun submitExam(
+        attemptId: String,
+        answers: Map<String, List<String>>
+    ): Result<ExamSubmitResult> = runCatching {
+        val response: ExamSubmitResultDto = client.authPost("exam/submit") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("attemptId" to attemptId, "answers" to answers))
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getExamReview(attemptId: String?): Result<ExamReview> = runCatching {
+        val response: ExamReviewDto = client.authGet("exam/review") {
+            if (!attemptId.isNullOrBlank()) parameter("attemptId", attemptId)
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getBenefits(): Result<Benefits> = runCatching {
+        val response: BenefitsDto = client.authGet("benefits/me")
         response.toDomain()
     }
 
