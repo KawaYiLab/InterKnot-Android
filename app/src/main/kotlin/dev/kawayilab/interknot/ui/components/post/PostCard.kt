@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,9 +38,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-import coil.compose.AsyncImage
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
@@ -65,62 +69,99 @@ fun PostCard(
         ),
         modifier = modifier.scale(scale)
     ) {
-        Box {
-            CoverImage(article = article)
-
-            BottomScrim(
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
-
-            ViewChip(
-                count = article.views,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(12.dp)
-            )
-
-            BottomInfo(
-                article = article,
-                modifier = Modifier.align(Alignment.BottomStart)
-            )
+        Column {
+            CoverSection(article = article)
+            PostMeta(article = article)
         }
     }
 }
 
 @Composable
-private fun CoverImage(article: Article) {
+private fun CoverSection(article: Article) {
     val aspectRatio = if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
         article.coverWidth.toFloat() / article.coverHeight.toFloat()
     } else {
-        1.576f
+        0.75f
     }
 
-    AsyncImage(
-        model = article.coverUrl,
-        contentDescription = article.title,
-        contentScale = ContentScale.Crop,
+    val imageUrl = article.coverUrl ?: article.coverImages.firstOrNull()?.url
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(aspectRatio)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-    )
+    ) {
+        if (imageUrl != null) {
+            SubcomposeAsyncImage(
+                model = imageUrl,
+                contentDescription = article.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (val state = painter.state) {
+                    is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                    else -> CoverPlaceholder()
+                }
+            }
+        } else {
+            CoverPlaceholder()
+        }
+
+        ViewChip(
+            count = article.views,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(10.dp)
+        )
+
+        TitleOverlay(
+            title = buildTitle(article),
+            modifier = Modifier.align(Alignment.BottomStart)
+        )
+    }
 }
 
 @Composable
-private fun BottomScrim(modifier: Modifier = Modifier) {
+private fun CoverPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Image,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+@Composable
+private fun TitleOverlay(
+    title: String,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .heightIn(max = 120.dp)
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.7f)
-                    )
+                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
                 )
             )
-    )
+            .padding(12.dp),
+        contentAlignment = Alignment.BottomStart
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }
 
 @Composable
@@ -154,42 +195,13 @@ private fun ViewChip(
 }
 
 @Composable
-private fun BottomInfo(
-    article: Article,
-    modifier: Modifier = Modifier
-) {
+private fun PostMeta(article: Article) {
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = buildTitle(article),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            AuthorRow(article = article)
-        }
-
-        if (article.likesCount > 0) {
-            LikeChip(count = article.likesCount)
-        }
-    }
-}
-
-@Composable
-private fun AuthorRow(article: Article) {
-    Row(
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
             modifier = Modifier
@@ -198,22 +210,47 @@ private fun AuthorRow(article: Article) {
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = article.author?.avatarUrl,
-                contentDescription = article.author?.name ?: "默认头像",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            val avatarUrl = article.author?.avatarUrl
+            if (avatarUrl != null) {
+                SubcomposeAsyncImage(
+                    model = avatarUrl,
+                    contentDescription = article.author?.name ?: "默认头像",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when (val state = painter.state) {
+                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                        else -> DefaultAvatarIcon()
+                    }
+                }
+            } else {
+                DefaultAvatarIcon()
+            }
         }
 
         Text(
             text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
+
+        if (article.likesCount > 0) {
+            LikeChip(count = article.likesCount)
+        }
     }
+}
+
+@Composable
+private fun DefaultAvatarIcon() {
+    Icon(
+        imageVector = Icons.Filled.Person,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.size(16.dp)
+    )
 }
 
 @Composable
@@ -225,13 +262,13 @@ private fun LikeChip(count: Int) {
         Icon(
             imageVector = Icons.Outlined.FavoriteBorder,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.9f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp)
         )
         Text(
             text = formatCount(count),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold
         )
     }

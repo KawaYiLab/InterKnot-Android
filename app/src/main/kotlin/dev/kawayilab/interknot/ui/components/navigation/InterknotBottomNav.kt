@@ -95,27 +95,16 @@ fun InterknotBottomNav(
 
 @Composable
 private fun CreateNavIcon(selected: Boolean) {
-    val background = if (selected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    }
-    val tint = if (selected) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
     Surface(
         modifier = Modifier.size(36.dp),
         shape = RoundedCornerShape(12.dp),
-        color = background
+        color = MaterialTheme.colorScheme.primary
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = Icons.Filled.Add,
                 contentDescription = "发布",
-                tint = tint,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -124,9 +113,9 @@ private fun CreateNavIcon(selected: Boolean) {
 
 @Composable
 private fun createItemColors(selected: Boolean) = NavigationBarItemDefaults.colors(
-    selectedIconColor = Color.Unspecified,
+    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
     selectedTextColor = MaterialTheme.colorScheme.primary,
     indicatorColor = Color.Transparent,
-    unselectedIconColor = Color.Unspecified,
+    unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
