@@ -1,54 +1,67 @@
 package dev.kawayilab.interknot.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
     primary = InterknotYellow,
-    onPrimary = Background,
+    onPrimary = Black,
     primaryContainer = InterknotYellow,
-    onPrimaryContainer = Background,
+    onPrimaryContainer = Black,
     secondary = AccentCyan,
-    onSecondary = Background,
-    secondaryContainer = Surface,
-    onSecondaryContainer = TextPrimary,
+    onSecondary = Black,
+    secondaryContainer = SurfaceDark,
+    onSecondaryContainer = White,
     tertiary = InterknotYellowLight,
-    onTertiary = Background,
+    onTertiary = Black,
     tertiaryContainer = InterknotYellowDark,
-    onTertiaryContainer = Background,
+    onTertiaryContainer = Black,
     error = Error,
-    onError = Background,
+    onError = Black,
     errorContainer = Color(0xFF3A1C1C),
     onErrorContainer = Color(0xFFFFCCCB),
-    background = Background,
-    onBackground = TextPrimary,
-    surface = Surface,
-    onSurface = TextPrimary,
-    surfaceVariant = CardInner,
-    onSurfaceVariant = TextSecondary,
-    surfaceDim = Background,
-    surfaceBright = Color(0xFF2A2A2A),
-    surfaceContainerLowest = Background,
-    surfaceContainerLow = Color(0xFF111111),
-    surfaceContainer = Surface,
-    surfaceContainerHigh = Color(0xFF1E1E1E),
-    surfaceContainerHighest = CardInner,
+    background = Black,
+    onBackground = White,
+    surface = SurfaceDark,
+    onSurface = White,
+    surfaceVariant = SurfaceHighest,
+    onSurfaceVariant = Silver,
+    surfaceDim = Black,
+    surfaceBright = Bright,
+    surfaceContainerLowest = Black,
+    surfaceContainerLow = Ink,
+    surfaceContainer = SurfaceDark,
+    surfaceContainerHigh = SurfaceHigh,
+    surfaceContainerHighest = SurfaceHighest,
     outline = Divider,
     outlineVariant = Border,
-    inverseSurface = TextPrimary,
-    inverseOnSurface = Background,
+    inverseSurface = White,
+    inverseOnSurface = Black,
     inversePrimary = InterknotYellowDark
 )
 
+private val ExtendedColors = InterknotExtendedColors()
+
 @Composable
 fun InterknotTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = DarkColorScheme,
-        typography = Typography,
-        content = content
-    )
+    val colorScheme = when {
+        darkTheme -> DarkColorScheme
+        else -> DarkColorScheme // Interknot is dark-only; we ignore the system light request.
+    }
+
+    CompositionLocalProvider(LocalInterknotColors provides ExtendedColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = InterknotTypography,
+            shapes = InterknotShapes,
+            content = content
+        )
+    }
 }

@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
@@ -52,10 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kawayilab.interknot.ui.components.post.PostCard
-import dev.kawayilab.interknot.ui.theme.Background
-import dev.kawayilab.interknot.ui.theme.InterknotYellow
-import dev.kawayilab.interknot.ui.theme.TextPrimary
-import dev.kawayilab.interknot.ui.theme.TextSecondary
 
 @Composable
 fun HomeScreen(
@@ -90,8 +85,7 @@ fun HomeScreen(
         topBar = {
             HomeTopBar(
                 query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onNotificationsClick = {}
+                onQueryChange = { searchQuery = it }
             )
         },
         contentWindowInsets = WindowInsets.statusBars
@@ -111,7 +105,7 @@ fun HomeScreen(
                 LazyVerticalStaggeredGrid(
                     columns = StaggeredGridCells.Adaptive(170.dp),
                     state = gridState,
-                    contentPadding = PaddingValues(8.dp),
+                    contentPadding = PaddingValues(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalItemSpacing = 12.dp,
                     modifier = Modifier.fillMaxSize()
@@ -131,7 +125,7 @@ fun HomeScreen(
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator(color = InterknotYellow)
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -139,7 +133,7 @@ fun HomeScreen(
 
                 if (isLoading && articles.isEmpty()) {
                     CircularProgressIndicator(
-                        color = InterknotYellow,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -148,7 +142,7 @@ fun HomeScreen(
                     Text(
                         text = "暂无相关委托... [ o_x ]/",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -157,6 +151,7 @@ fun HomeScreen(
                     Text(
                         text = message,
                         color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(16.dp)
@@ -170,8 +165,7 @@ fun HomeScreen(
 @Composable
 private fun HomeTopBar(
     query: String,
-    onQueryChange: (String) -> Unit,
-    onNotificationsClick: () -> Unit
+    onQueryChange: (String) -> Unit
 ) {
     CenterAlignedTopAppBar(
         modifier = Modifier.fillMaxWidth(),
@@ -182,32 +176,32 @@ private fun HomeTopBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)
-                    .height(42.dp)
+                    .height(48.dp)
             )
         },
         navigationIcon = {
-            IconButton(onClick = {}) {
+            IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Outlined.Person,
                     contentDescription = "我的",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
         actions = {
-            IconButton(onClick = onNotificationsClick) {
+            IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = "通知",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Background,
-            navigationIconContentColor = TextPrimary,
-            titleContentColor = TextPrimary,
-            actionIconContentColor = TextPrimary
+            containerColor = MaterialTheme.colorScheme.background,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -223,13 +217,17 @@ private fun SearchField(
         onValueChange = onQueryChange,
         modifier = modifier,
         singleLine = true,
-        shape = RoundedCornerShape(999.dp),
-        placeholder = { Text("搜索委托", color = TextSecondary) },
+        shape = MaterialTheme.shapes.extraLarge,
+        placeholder = {
+            Text(
+                text = "搜索委托",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
         },
@@ -239,11 +237,11 @@ private fun SearchField(
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             disabledIndicatorColor = Color.Transparent,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            focusedPlaceholderColor = TextSecondary,
-            unfocusedPlaceholderColor = TextSecondary,
-            cursorColor = InterknotYellow
+            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            cursorColor = MaterialTheme.colorScheme.primary
         )
     )
 }
@@ -255,7 +253,7 @@ private fun CategoryTabs(
     onSelect: (Int) -> Unit
 ) {
     androidx.compose.foundation.lazy.LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -282,12 +280,14 @@ private fun CategoryTabs(
                         )
                     }
                 } else null,
-                shape = RoundedCornerShape(999.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                border = null,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     labelColor = MaterialTheme.colorScheme.onSurface,
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }

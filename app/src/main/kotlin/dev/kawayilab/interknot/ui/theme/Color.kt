@@ -1,36 +1,49 @@
 package dev.kawayilab.interknot.ui.theme
 
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Background / surfaces
-val Background = Color(0xFF0A0A0A)
-val Surface = Color(0xFF1A1A1A)
-val CardInner = Color(0xFF222222)
-val CardOuter = Color(0xFF000000)
-val CoverPlaceholder = Color(0xFF151515)
+// Primitive palette — only used to seed the semantic tokens below.
+internal val Black = Color(0xFF0A0A0A)
+internal val Ink = Color(0xFF111111)
+internal val SurfaceDark = Color(0xFF1A1A1A)
+internal val SurfaceHigh = Color(0xFF1E1E1E)
+internal val SurfaceHighest = Color(0xFF222222)
+internal val Bright = Color(0xFF2A2A2A)
 
-// Text
-val TextPrimary = Color(0xFFE8E8E8)
-val TextSecondary = Color(0xFF9A9A9A)
-val TextMuted = Color(0xFF808080)
+internal val White = Color(0xFFE8E8E8)
+internal val Silver = Color(0xFF9A9A9A)
+internal val Muted = Color(0xFF808080)
 
-// Brand & accents
-val InterknotYellow = Color(0xFFBFFF09)
-val InterknotYellowLight = Color(0xFFFDFF42)
-val InterknotYellowMid = Color(0xFFF4F700)
-val InterknotYellowDark = Color(0xFFDFE200)
-val AccentCyan = Color(0xFF00E5FF)
+internal val InterknotYellow = Color(0xFFBFFF09)
+internal val InterknotYellowLight = Color(0xFFFDFF42)
+internal val InterknotYellowDark = Color(0xFFDFE200)
+internal val AccentCyan = Color(0xFF00E5FF)
 
-// Functional
-val Error = Color(0xFFFF4D4F)
-val TitleUnread = Color(0xFF2196F3)
-val TitleRead = Color(0xFF9E9E9E)
-val Link = Color(0xFF6F9CFF)
-val OnlineGreen = Color(0xFF4ADE80)
-val KnockBadge = Color(0xFFFF3838)
+internal val Error = Color(0xFFFF4D4F)
+internal val TitleUnread = Color(0xFF2196F3)
+internal val TitleRead = Color(0xFF9E9E9E)
+internal val Link = Color(0xFF6F9CFF)
+internal val OnlineGreen = Color(0xFF4ADE80)
+internal val KnockBadge = Color(0xFFFF3838)
 
-// Dividers / borders
-val Divider = Color(0xFF3A3A3A)
-val Border = Color(0xFF2D2D2D)
-val HeaderBorder = Color(0xFF313132)
-val SearchBackground = Color(0xFF161616)
+internal val Divider = Color(0xFF3A3A3A)
+internal val Border = Color(0xFF2D2D2D)
+internal val HeaderBorder = Color(0xFF313132)
+
+/**
+ * App-specific colors that don't fit into the standard Material 3 [ColorScheme].
+ *
+ * Use via [LocalInterknotColors.current] inside [InterknotTheme].
+ */
+@Immutable
+data class InterknotExtendedColors(
+    val titleRead: Color = TitleRead,
+    val titleUnread: Color = TitleUnread,
+    val link: Color = Link,
+    val online: Color = OnlineGreen,
+    val knockBadge: Color = KnockBadge
+)
+
+val LocalInterknotColors = staticCompositionLocalOf { InterknotExtendedColors() }

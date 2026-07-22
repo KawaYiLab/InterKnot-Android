@@ -61,11 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import dev.kawayilab.interknot.model.Article
-import dev.kawayilab.interknot.ui.theme.Background
-import dev.kawayilab.interknot.ui.theme.InterknotYellow
-import dev.kawayilab.interknot.ui.theme.TextMuted
-import dev.kawayilab.interknot.ui.theme.TextPrimary
-import dev.kawayilab.interknot.ui.theme.TextSecondary
+import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
 
 @Composable
 fun PostDetailScreen(
@@ -86,7 +82,7 @@ fun PostDetailScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             article?.let { PostDetailTopBar(it, onNavigateBack) }
@@ -94,10 +90,15 @@ fun PostDetailScreen(
                     title = { Text("帖子详情") },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "返回"
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Background)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
                 )
         },
         bottomBar = { article?.let { ArticleActionsBar() } }
@@ -110,7 +111,7 @@ fun PostDetailScreen(
             when {
                 isLoading && article == null -> {
                     CircularProgressIndicator(
-                        color = InterknotYellow,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -119,6 +120,7 @@ fun PostDetailScreen(
                     Text(
                         text = error ?: "加载失败",
                         color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -145,16 +147,15 @@ private fun PostDetailTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回",
-                    tint = TextPrimary
+                    contentDescription = "返回"
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Background,
-            navigationIconContentColor = TextPrimary,
-            titleContentColor = TextPrimary,
-            actionIconContentColor = TextPrimary
+            containerColor = MaterialTheme.colorScheme.background,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -176,9 +177,7 @@ private fun AuthorHeader(article: Article) {
                 model = article.author?.avatarUrl,
                 contentDescription = article.author?.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
+                modifier = Modifier.fillMaxSize()
             )
         }
 
@@ -186,13 +185,13 @@ private fun AuthorHeader(article: Article) {
             Text(
                 text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
                 style = MaterialTheme.typography.titleSmall,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
+                    shape = MaterialTheme.shapes.extraSmall,
                     color = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
@@ -206,7 +205,7 @@ private fun AuthorHeader(article: Article) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = formatTime(article.publishedAt ?: article.createdAt),
-                    color = TextMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -235,11 +234,12 @@ private fun ArticleDetailContent(
         }
 
         item {
+            val extendedColors = LocalInterknotColors.current
             val category = article.category?.name?.takeIf { it.isNotBlank() }
             Text(
-                text = if (category != null) "[ $category ] ${article.title}" else article.title,
+                text = if (category != null) "[$category] ${article.title}" else article.title,
                 style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimary
+                color = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
             )
         }
 
@@ -247,7 +247,7 @@ private fun ArticleDetailContent(
             Text(
                 text = article.text ?: "",
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }
@@ -267,10 +267,16 @@ private fun CoverPager(article: Article) {
         CoverImage(images[0], article.title)
     } else {
         val pagerState = rememberPagerState(pageCount = { images.size })
-        Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+        ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                pageSpacing = 8.dp,
+                contentPadding = PaddingValues(horizontal = 4.dp)
             ) { page ->
                 CoverImage(images[page], article.title)
             }
@@ -288,7 +294,13 @@ private fun CoverPager(article: Article) {
                             .height(6.dp)
                             .width(if (isSelected) 18.dp else 6.dp)
                             .clip(RoundedCornerShape(3.dp))
-                            .background(if (isSelected) InterknotYellow else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                            .background(
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                }
+                            )
                     )
                 }
             }
@@ -301,19 +313,15 @@ private fun CoverImage(url: String?, contentDescription: String?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.outlineVariant)
-            .padding(4.dp)
+            .height(260.dp)
+            .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         AsyncImage(
             model = url,
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.background)
+            modifier = Modifier.fillMaxSize()
         )
     }
 }
@@ -333,12 +341,12 @@ private fun ArticleActionsBar() {
                 onValueChange = { comment = it },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                shape = RoundedCornerShape(999.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 placeholder = {
                     Text(
-                        "评论一下...",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "评论一下...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 colors = TextFieldDefaults.colors(
@@ -347,28 +355,32 @@ private fun ArticleActionsBar() {
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    focusedPlaceholderColor = TextSecondary,
-                    unfocusedPlaceholderColor = TextSecondary,
-                    cursorColor = InterknotYellow
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 )
             )
 
             ActionIcon(
                 icon = Icons.Default.ThumbUp,
+                contentDescription = "点赞",
                 onClick = {}
             )
             ActionIcon(
                 icon = Icons.Default.Star,
+                contentDescription = "收藏",
                 onClick = {}
             )
             ActionIcon(
                 icon = Icons.Default.FavoriteBorder,
+                contentDescription = "喜欢",
                 onClick = {}
             )
             ActionIcon(
                 icon = Icons.Default.MoreVert,
+                contentDescription = "更多",
                 onClick = {}
             )
         }
@@ -378,17 +390,14 @@ private fun ArticleActionsBar() {
 @Composable
 private fun ActionIcon(
     icon: ImageVector,
+    contentDescription: String,
     onClick: () -> Unit
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.size(44.dp)
-    ) {
+    IconButton(onClick = onClick) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(22.dp)
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

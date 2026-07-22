@@ -4,11 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -28,7 +23,6 @@ import dev.kawayilab.interknot.ui.screens.level.LevelScreen
 import dev.kawayilab.interknot.ui.screens.login.LoginScreen
 import dev.kawayilab.interknot.ui.screens.post.PostDetailScreen
 import dev.kawayilab.interknot.ui.screens.profile.ProfileScreen
-import dev.kawayilab.interknot.ui.theme.Background
 
 @Composable
 fun InterknotNavHost(
@@ -39,7 +33,7 @@ fun InterknotNavHost(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Background,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
         bottomBar = {
             if (backStack.isTopLevel) {
@@ -48,23 +42,7 @@ fun InterknotNavHost(
                     onNavigate = { backStack.navigate(it) }
                 )
             }
-        },
-        floatingActionButton = {
-            if (backStack.isTopLevel) {
-                FloatingActionButton(
-                    onClick = { backStack.navigate(Create) },
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "发布委托"
-                    )
-                }
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -84,8 +62,8 @@ fun InterknotNavHost(
                         HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
                     }
                     entry<Knock> { KnockScreen() }
-                    entry<Level> { LevelScreen() }
                     entry<Create> { CreateScreen(onNavigateBack = dropUnlessResumed { backStack.goBack() }) }
+                    entry<Level> { LevelScreen() }
                     entry<Profile> {
                         ProfileScreen(onLogout = dropUnlessResumed { backStack.logout() })
                     }
