@@ -3,6 +3,7 @@ package dev.kawayilab.interknot.data.api
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
+import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
@@ -36,4 +37,23 @@ interface InterknotApi {
         isAnonymous: Boolean = false
     ): Result<String>
     suspend fun publishArticle(documentId: String): Result<Unit>
+    suspend fun searchArticles(
+        query: String,
+        start: Int,
+        limit: Int,
+        category: String? = null
+    ): Result<ArticlePage>
+    suspend fun getCategories(): Result<List<Category>>
+    suspend fun suggestArticles(query: String, category: String? = null, limit: Int = 8): Result<List<SearchSuggestion>>
 }
+
+data class SearchSuggestion(
+    val documentId: String,
+    val title: String,
+    val titleHighlighted: String? = null,
+    val excerpt: String? = null,
+    val authorName: String? = null,
+    val categoryName: String? = null,
+    val categorySlug: String? = null,
+    val isAnonymous: Boolean = false
+)

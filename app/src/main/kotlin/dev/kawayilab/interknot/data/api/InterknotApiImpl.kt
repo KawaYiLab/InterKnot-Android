@@ -3,10 +3,13 @@ package dev.kawayilab.interknot.data.api
 import dev.kawayilab.interknot.data.api.dto.ArticleDetailDto
 import dev.kawayilab.interknot.data.api.dto.ArticleListItemDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
+import dev.kawayilab.interknot.data.api.dto.CategoryDto
 import dev.kawayilab.interknot.data.api.dto.CodeResultDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
+import dev.kawayilab.interknot.data.api.dto.DataListDto
 import dev.kawayilab.interknot.data.api.dto.LikeResultDto
 import dev.kawayilab.interknot.data.api.dto.PagedListDto
+import dev.kawayilab.interknot.data.api.dto.SearchSuggestionDto
 import dev.kawayilab.interknot.data.api.dto.SingleDto
 import dev.kawayilab.interknot.data.api.dto.UserDto
 import dev.kawayilab.interknot.data.api.dto.toDomain
@@ -169,6 +172,48 @@ class InterknotApiImpl @Inject constructor(
             setBody(mapOf<String, String>())
         }
         Unit
+    }
+
+    override suspend fun searchArticles(
+        query: String,
+        start: Int,
+        limit: Int,
+        category: String?
+    ): Result<ArticlePage> = runCatching {
+        val response: PagedListDto<ArticleListItemDto> = client.authGet("articles/search") {
+            parameter("q", query.trim())
+            parameter("start", start)
+            parameter("limit", limit)
+            if (!category.isNullOrBlank()) parameter("category", category)
+        }
+
+        val items = response.data.map { it.toDomain() }
+        val pagination = response.meta.pagination
+        ArticlePage(
+            items = items,
+            start = pagination.start,
+            limit = pagination.limit,
+            total = pagination.total,
+            hasMore = items.isNotEmpty() && (start + items.size) < pagination.total
+        )
+    }
+
+    override suspend fun getCategories(): Result<List<dev.kawayilab.interknot.model.Category>> = runCatching {
+        val response: DataListDto<CategoryDto> = client.authGet("categories/list")
+        response.data.map { it.toDomain() }
+    }
+
+    override suspend fun suggestArticles(
+        query: String,
+        category: String?,
+        limit: Int
+    ): Result<List<SearchSuggestion>> = runCatching {
+        val response: DataListDto<SearchSuggestionDto> = client.authGet("articles/suggest") {
+            parameter("q", query.trim())
+            parameter("limit", limit)
+            if (!category.isNullOrBlank()) parameter("category", category)
+        }
+        response.data.map { it.toDomain() }
     }
 }
 

@@ -6,6 +6,7 @@ import dev.kawayilab.interknot.data.local.UserPreferences
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
+import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
@@ -117,4 +118,19 @@ class InterknotRepository @Inject constructor(
             api.publishArticle(documentId).getOrThrow()
         }
     }
+
+    suspend fun searchArticles(
+        query: String,
+        start: Int = 0,
+        limit: Int = 20,
+        category: String? = null
+    ): Result<ArticlePage> = api.searchArticles(query, start, limit, category)
+
+    suspend fun getCategories(): Result<List<Category>> = api.getCategories()
+
+    suspend fun suggestArticles(
+        query: String,
+        category: String? = null,
+        limit: Int = 8
+    ): Result<List<dev.kawayilab.interknot.data.api.SearchSuggestion>> = api.suggestArticles(query, category, limit)
 }

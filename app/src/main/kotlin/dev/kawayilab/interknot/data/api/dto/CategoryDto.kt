@@ -5,11 +5,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CategoryDto(
+    val documentId: String? = null,
     val name: String? = null,
-    val slug: String? = null
+    val slug: String? = null,
+    val order: Int? = null,
+    val adminOnly: Boolean? = null
 )
 
 fun CategoryDto.toDomain() = Category(
+    documentId = documentId,
     name = name,
-    slug = slug
+    slug = slug,
+    order = order,
+    adminOnly = adminOnly == true
 )

@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.kawayilab.interknot.data.repository.InterknotRepository
 import dev.kawayilab.interknot.model.Article
+import dev.kawayilab.interknot.model.Category
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,8 +21,14 @@ class HomeViewModel @Inject constructor(
     private val _articles = MutableStateFlow<List<Article>>(emptyList())
     val articles: StateFlow<List<Article>> = _articles.asStateFlow()
 
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _isLoadingCategories = MutableStateFlow(false)
+    val isLoadingCategories: StateFlow<Boolean> = _isLoadingCategories.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -28,19 +36,56 @@ class HomeViewModel @Inject constructor(
     private val _hasMore = MutableStateFlow(true)
     val hasMore: StateFlow<Boolean> = _hasMore.asStateFlow()
 
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _feed = MutableStateFlow("recommend")
+    val feed: StateFlow<String> = _feed.asStateFlow()
+
+    private val _categorySlug = MutableStateFlow<String?>(null)
+    val categorySlug: StateFlow<String?> = _categorySlug.asStateFlow()
+
     private var start = 0
     private val limit = 20
+    private var loadJob: Job? = null
 
     init {
+        loadCategories()
         loadMore()
+    }
+
+    fun setFeed(value: String) {
+        if (_feed.value == value) return
+        _feed.value = value
+        refresh()
+    }
+
+    fun setCategorySlug(slug: String?) {
+        if (_categorySlug.value == slug) return
+        _categorySlug.value = slug
+        refresh()
+    }
+
+    fun setQuery(value: String) {
+        if (_query.value == value) return
+        _query.value = value
+        refresh()
     }
 
     fun loadMore() {
         if (_isLoading.value || !_hasMore.value) return
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            repository.getArticles(start, limit, "recommend", null)
+            val currentQuery = _query.value.trim()
+            val currentCategory = _categorySlug.value?.takeIf { it.isNotBlank() }
+            val result = if (currentQuery.isNotEmpty()) {
+                repository.searchArticles(currentQuery, start, limit, currentCategory)
+            } else {
+                repository.getArticles(start, limit, _feed.value, currentCategory)
+            }
+            result
                 .onSuccess { page ->
                     _articles.value = _articles.value + page.items
                     start += page.items.size
@@ -52,10 +97,21 @@ class HomeViewModel @Inject constructor(
     }
 
     fun refresh() {
+        loadJob?.cancel()
         start = 0
         _articles.value = emptyList()
         _hasMore.value = true
         _error.value = null
         loadMore()
+    }
+
+    private fun loadCategories() {
+        viewModelScope.launch {
+            _isLoadingCategories.value = true
+            repository.getCategories()
+                .onSuccess { _categories.value = it.sortedBy { c -> c.order ?: Int.MAX_VALUE } }
+                .onFailure { /* ignore category load failures, fallback to static list in UI */ }
+            _isLoadingCategories.value = false
+        }
     }
 }
