@@ -17,6 +17,7 @@ import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

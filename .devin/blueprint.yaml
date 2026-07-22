@@ -1,0 +1,28 @@
+# https://docs.devin.ai/onboard-devin/environment-yaml
+initialize: |
+  export ANDROID_HOME=/home/ubuntu/android-sdk
+  export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+  if [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+    mkdir -p /tmp/android-setup
+    cd /tmp/android-setup
+    curl -LO --fail https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip
+    unzip -q -o commandlinetools-linux-12266719_latest.zip
+    mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+    cp -r cmdline-tools/* "$ANDROID_HOME/cmdline-tools/latest/"
+    yes | sdkmanager --sdk_root="$ANDROID_HOME" --install "cmdline-tools;latest" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+  fi
+maintenance: |
+  echo "sdk.dir=/home/ubuntu/android-sdk" > local.properties
+knowledge:
+  - name: lint
+    contents: |
+      ./gradlew :app:lintDebug
+  - name: test
+    contents: |
+      ./gradlew :app:testDebugUnitTest
+  - name: build
+    contents: |
+      ./gradlew :app:assembleDebug
+  - name: notes
+    contents: |
+      Native Android client for InterKnot. Uses Kotlin, Jetpack Compose, Hilt, Ktor, and Coil.
