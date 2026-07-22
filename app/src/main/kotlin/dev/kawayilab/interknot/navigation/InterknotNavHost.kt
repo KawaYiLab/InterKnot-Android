@@ -22,12 +22,14 @@ import dev.kawayilab.interknot.data.repository.InterknotRepository
 import kotlinx.coroutines.launch
 import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
 import dev.kawayilab.interknot.ui.screens.create.CreateScreen
+import dev.kawayilab.interknot.ui.screens.explore.ExploreScreen
 import dev.kawayilab.interknot.ui.screens.home.HomeScreen
 import dev.kawayilab.interknot.ui.screens.knock.KnockScreen
 import dev.kawayilab.interknot.ui.screens.level.LevelScreen
 import dev.kawayilab.interknot.ui.screens.login.LoginScreen
 import dev.kawayilab.interknot.ui.screens.post.PostDetailScreen
 import dev.kawayilab.interknot.ui.screens.profile.ProfileScreen
+import dev.kawayilab.interknot.ui.screens.search.SearchScreen
 
 @Composable
 fun InterknotNavHost(
@@ -81,6 +83,15 @@ fun InterknotNavHost(
                     entry<Knock> { KnockScreen() }
                     entry<Create> { CreateScreen(onNavigateBack = { backStack.goBack() }) }
                     entry<Level> { LevelScreen() }
+                    entry<Explore> {
+                        ExploreScreen(
+                            onSearchClick = { backStack.navigate(Search()) },
+                            onCategoryClick = { category ->
+                                backStack.navigate(Search(category = category?.slug))
+                            },
+                            onPostClick = { id -> backStack.navigate(PostDetail(id)) }
+                        )
+                    }
                     entry<Profile> {
                         ProfileScreen(
                             user = user,
@@ -93,6 +104,14 @@ fun InterknotNavHost(
                         PostDetailScreen(
                             postId = key.postId,
                             onNavigateBack = { backStack.goBack() }
+                        )
+                    }
+                    entry<Search> { key ->
+                        SearchScreen(
+                            initialQuery = key.query,
+                            initialCategory = key.category,
+                            onBack = { backStack.goBack() },
+                            onPostClick = { id -> backStack.navigate(PostDetail(id)) }
                         )
                     }
                     entry<Login> {

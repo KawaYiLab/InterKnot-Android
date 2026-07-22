@@ -19,10 +19,19 @@ data object Create : InterknotRoute(requiresLogin = true)
 data object Level : InterknotRoute(requiresLogin = true)
 
 @Serializable
+data object Explore : InterknotRoute()
+
+@Serializable
 data object Profile : InterknotRoute(requiresLogin = true)
 
 @Serializable
 data class PostDetail(val postId: String) : InterknotRoute()
+
+@Serializable
+data class Search(
+    val query: String = "",
+    val category: String? = null
+) : InterknotRoute()
 
 @Serializable
 data class Login(val redirectToKey: InterknotRoute? = null) : InterknotRoute()

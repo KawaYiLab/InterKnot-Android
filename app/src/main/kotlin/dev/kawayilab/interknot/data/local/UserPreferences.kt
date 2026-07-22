@@ -28,10 +28,33 @@ class UserPreferences @Inject constructor(
     private object Keys {
         val TOKEN = stringPreferencesKey("token")
         val USER = stringPreferencesKey("user")
+        val SEARCH_HISTORY = stringPreferencesKey("search_history")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[Keys.TOKEN] }
     val user: Flow<User?> = dataStore.data.map { it[Keys.USER]?.let { raw -> runCatching { json.decodeFromString<User>(raw) }.getOrNull() } }
+
+    val searchHistory: Flow<List<String>> = dataStore.data.map { prefs ->
+        prefs[Keys.SEARCH_HISTORY]?.let { raw ->
+            runCatching { json.decodeFromString<List<String>>(raw) }.getOrNull()
+        } ?: emptyList()
+    }
+
+    suspend fun addSearchHistory(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.SEARCH_HISTORY]?.let { raw ->
+                runCatching { json.decodeFromString<List<String>>(raw) }.getOrDefault(emptyList())
+            } ?: emptyList()
+            val updated = (listOf(trimmed) + current.filter { it != trimmed }).take(20)
+            prefs[Keys.SEARCH_HISTORY] = json.encodeToString(updated)
+        }
+    }
+
+    suspend fun clearSearchHistory() {
+        dataStore.edit { it.remove(Keys.SEARCH_HISTORY) }
+    }
 
     suspend fun saveSession(token: String, user: User) {
         dataStore.edit {

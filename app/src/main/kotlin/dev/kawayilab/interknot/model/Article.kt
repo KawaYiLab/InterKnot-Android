@@ -1,5 +1,8 @@
 package dev.kawayilab.interknot.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Article(
     val documentId: String,
     val title: String,
@@ -31,6 +34,7 @@ data class Article(
     val category: Category? = null
 )
 
+@Serializable
 data class ArticlePage(
     val items: List<Article>,
     val start: Int,

@@ -3,6 +3,8 @@ package dev.kawayilab.interknot.data.repository
 import dev.kawayilab.interknot.data.api.InterknotApi
 import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.data.local.UserPreferences
+import dev.kawayilab.interknot.data.local.cache.CachedSearch
+import dev.kawayilab.interknot.data.local.cache.CachedSearchDao
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
@@ -23,6 +25,7 @@ import dev.kawayilab.interknot.model.BlockResult
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +35,9 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class InterknotRepository @Inject constructor(
     private val api: InterknotApi,
-    private val preferences: UserPreferences
+    private val preferences: UserPreferences,
+    private val cachedSearchDao: CachedSearchDao,
+    private val json: Json
 ) {
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user.asStateFlow()
@@ -164,7 +169,41 @@ class InterknotRepository @Inject constructor(
         start: Int = 0,
         limit: Int = 20,
         category: String? = null
-    ): Result<ArticlePage> = api.searchArticles(query, start, limit, category)
+    ): Result<ArticlePage> {
+        val cached = if (start == 0) getCachedSearch(query, category) else null
+        return api.searchArticles(query, start, limit, category)
+            .onSuccess { page ->
+                if (start == 0 || page.items.isNotEmpty()) {
+                    cacheSearch(query, category, page)
+                }
+            }
+            .recoverCatching { cached ?: throw it }
+    }
+
+    suspend fun getCachedSearch(query: String, category: String? = null): ArticlePage? {
+        return cachedSearchDao.get(query, category ?: "")?.let { cached ->
+            runCatching { json.decodeFromString(ArticlePage.serializer(), cached.resultsJson ?: "") }.getOrNull()
+        }
+    }
+
+    private suspend fun cacheSearch(query: String, category: String? = null, page: ArticlePage) {
+        runCatching {
+            cachedSearchDao.insert(
+                CachedSearch(
+                    query = query,
+                    category = category ?: "",
+                    resultsJson = json.encodeToString(ArticlePage.serializer(), page),
+                    total = page.total,
+                    cachedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    val searchHistory: Flow<List<String>> = preferences.searchHistory
+
+    suspend fun addSearchHistory(query: String) = preferences.addSearchHistory(query)
+    suspend fun clearSearchHistory() = preferences.clearSearchHistory()
 
     suspend fun getCategories(): Result<List<Category>> = api.getCategories()
 
