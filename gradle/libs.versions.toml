@@ -12,6 +12,7 @@ nav3Core = "1.0.0"
 lifecycleViewmodelNav3 = "2.10.0"
 material3AdaptiveNavSuite = "1.3.2"
 hilt = "2.52"
+hiltNavigationCompose = "1.2.0"
 ksp = "2.0.21-1.0.28"
 ktor = "2.3.12"
 serialization = "1.7.3"
@@ -54,6 +55,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
