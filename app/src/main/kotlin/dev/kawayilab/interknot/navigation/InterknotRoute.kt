@@ -10,7 +10,13 @@ sealed class InterknotRoute(val requiresLogin: Boolean = false) : NavKey
 data object Home : InterknotRoute()
 
 @Serializable
-data object Explore : InterknotRoute()
+data object Knock : InterknotRoute(requiresLogin = true)
+
+@Serializable
+data object Create : InterknotRoute(requiresLogin = true)
+
+@Serializable
+data object Level : InterknotRoute(requiresLogin = true)
 
 @Serializable
 data object Profile : InterknotRoute(requiresLogin = true)

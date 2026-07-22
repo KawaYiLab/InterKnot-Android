@@ -1,108 +1,95 @@
 package dev.kawayilab.interknot.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import dev.kawayilab.interknot.ui.screens.explore.ExploreScreen
+import dev.kawayilab.interknot.ui.components.navigation.CenterCreateButton
+import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
+import dev.kawayilab.interknot.ui.screens.create.CreateScreen
 import dev.kawayilab.interknot.ui.screens.home.HomeScreen
+import dev.kawayilab.interknot.ui.screens.knock.KnockScreen
+import dev.kawayilab.interknot.ui.screens.level.LevelScreen
 import dev.kawayilab.interknot.ui.screens.login.LoginScreen
 import dev.kawayilab.interknot.ui.screens.post.PostDetailScreen
 import dev.kawayilab.interknot.ui.screens.profile.ProfileScreen
-
-private fun InterknotRoute.icon(): ImageVector = when (this) {
-    is Home -> Icons.Default.Home
-    is Explore -> Icons.Default.Search
-    is Profile -> Icons.Default.Person
-    else -> Icons.Default.Home
-}
-
-private fun InterknotRoute.label(): String = when (this) {
-    is Home -> "首页"
-    is Explore -> "探索"
-    is Profile -> "我的"
-    else -> ""
-}
+import dev.kawayilab.interknot.ui.theme.Background
 
 @Composable
 fun InterknotNavHost(
     modifier: Modifier = Modifier,
     backStack: InterknotBackStack = remember { InterknotBackStack() }
 ) {
-    val navContent: @Composable () -> Unit = {
-        NavDisplay(
-            backStack = backStack.backStack,
-            modifier = modifier,
-            onBack = { backStack.goBack() },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            ),
-            entryProvider = entryProvider {
-                entry<Home> {
-                    HomeScreen(
-                        onPostClick = { id -> backStack.navigate(PostDetail(id)) }
-                    )
-                }
-                entry<Explore> {
-                    ExploreScreen(
-                        onPostClick = { id -> backStack.navigate(PostDetail(id)) }
-                    )
-                }
-                entry<Profile> {
-                    ProfileScreen(
-                        onLogout = dropUnlessResumed { backStack.logout() }
-                    )
-                }
-                entry<PostDetail> { key ->
-                    PostDetailScreen(
-                        postId = key.postId,
-                        onNavigateBack = dropUnlessResumed { backStack.goBack() }
-                    )
-                }
-                entry<Login> {
-                    LoginScreen(
-                        onLoginSuccess = dropUnlessResumed { backStack.login() }
-                    )
-                }
-            }
-        )
-    }
+    val currentTopLevel = backStack.currentTopLevel
 
-    if (backStack.isTopLevel) {
-        NavigationSuiteScaffold(
-            navigationSuiteItems = {
-                backStack.topLevelRoutes.forEach { route ->
-                    val selected = backStack.currentTopLevel == route
-                    item(
-                        selected = selected,
-                        onClick = { backStack.navigate(route) },
-                        icon = {
-                            Icon(
-                                imageVector = route.icon(),
-                                contentDescription = route.label()
-                            )
-                        },
-                        label = { Text(route.label()) }
-                    )
-                }
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = Background,
+        contentWindowInsets = WindowInsets(left = 0.dp, top = 0.dp, right = 0.dp, bottom = 0.dp),
+        bottomBar = {
+            if (backStack.isTopLevel) {
+                InterknotBottomNav(
+                    currentRoute = currentTopLevel,
+                    onNavigate = { backStack.navigate(it) }
+                )
             }
+        },
+        floatingActionButton = {
+            if (backStack.isTopLevel) {
+                CenterCreateButton(
+                    onClick = { backStack.navigate(Create) },
+                    modifier = Modifier.offset(y = (-12).dp)
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            navContent()
+            NavDisplay(
+                backStack = backStack.backStack,
+                modifier = Modifier.fillMaxSize(),
+                onBack = { backStack.goBack() },
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator()
+                ),
+                entryProvider = entryProvider {
+                    entry<Home> {
+                        HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
+                    }
+                    entry<Knock> { KnockScreen() }
+                    entry<Level> { LevelScreen() }
+                    entry<Create> { CreateScreen(onNavigateBack = dropUnlessResumed { backStack.goBack() }) }
+                    entry<Profile> {
+                        ProfileScreen(onLogout = dropUnlessResumed { backStack.logout() })
+                    }
+                    entry<PostDetail> { key ->
+                        PostDetailScreen(
+                            postId = key.postId,
+                            onNavigateBack = dropUnlessResumed { backStack.goBack() }
+                        )
+                    }
+                    entry<Login> {
+                        LoginScreen(onLoginSuccess = dropUnlessResumed { backStack.login() })
+                    }
+                }
+            )
         }
-    } else {
-        navContent()
     }
 }
