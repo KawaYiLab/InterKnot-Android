@@ -1,7 +1,5 @@
 package dev.kawayilab.interknot.data.repository
 
-import dev.kawayilab.interknot.data.api.DennyBalance
-import dev.kawayilab.interknot.data.api.DennyGiveResult
 import dev.kawayilab.interknot.data.api.InterknotApi
 import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.data.local.UserPreferences
@@ -10,9 +8,12 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.DennyBalance
+import dev.kawayilab.interknot.model.DennyGiveResult
 import dev.kawayilab.interknot.model.KnockConversation
 import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
+import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.User
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -136,7 +137,7 @@ class InterknotRepository @Inject constructor(
         query: String,
         category: String? = null,
         limit: Int = 8
-    ): Result<List<dev.kawayilab.interknot.data.api.SearchSuggestion>> = api.suggestArticles(query, category, limit)
+    ): Result<List<SearchSuggestion>> = api.suggestArticles(query, category, limit)
 
     suspend fun getKnockConversations(): Result<List<KnockConversation>> = api.getKnockConversations()
 

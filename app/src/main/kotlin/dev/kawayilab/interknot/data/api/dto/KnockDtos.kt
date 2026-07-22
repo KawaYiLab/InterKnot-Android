@@ -138,7 +138,7 @@ data class KnockMessageMetaDto(
     val hasMore: Boolean = false
 )
 
-fun KnockMessagePageDto.toDomain() = dev.kawayilab.interknot.data.api.KnockMessagePage(
+fun KnockMessagePageDto.toDomain() = dev.kawayilab.interknot.model.KnockMessagePage(
     items = data.map { it.toDomain() },
     nextCursor = meta.nextCursor,
     hasMore = meta.hasMore

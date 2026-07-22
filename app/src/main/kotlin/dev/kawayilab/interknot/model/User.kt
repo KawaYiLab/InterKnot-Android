@@ -14,5 +14,9 @@ data class User(
     val level: Int? = null,
     val exp: Int? = null,
     val isAdmin: Boolean = false,
-    val examPassed: Boolean? = null
+    val examPassed: Boolean? = null,
+    val examPassedAt: String? = null,
+    val profileHidden: Boolean = false,
+    val consecutiveCheckInDays: Int = 0,
+    val lastCheckInDate: String? = null
 )

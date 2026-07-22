@@ -43,7 +43,7 @@ data class SearchSuggestionDto(
     val isAnonymous: Boolean? = null
 )
 
-fun SearchSuggestionDto.toDomain() = dev.kawayilab.interknot.data.api.SearchSuggestion(
+fun SearchSuggestionDto.toDomain() = dev.kawayilab.interknot.model.SearchSuggestion(
     documentId = documentId,
     title = title,
     titleHighlighted = titleHighlighted,

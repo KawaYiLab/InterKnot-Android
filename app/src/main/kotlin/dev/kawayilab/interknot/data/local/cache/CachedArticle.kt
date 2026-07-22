@@ -1,14 +1,18 @@
-package dev.kawayilab.interknot.model
+package dev.kawayilab.interknot.data.local.cache
 
-data class Article(
-    val documentId: String,
-    val title: String,
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "cached_articles")
+data class CachedArticle(
+    @PrimaryKey val documentId: String,
+    val title: String = "",
     val text: String? = null,
     val coverUrl: String? = null,
     val coverWidth: Int? = null,
     val coverHeight: Int? = null,
     val coverNsfwStatus: String? = null,
-    val coverImages: List<ImageMeta> = emptyList(),
+    val coverImagesJson: String? = null,
     val views: Int = 0,
     val likesCount: Int = 0,
     val commentsCount: Int = 0,
@@ -26,15 +30,7 @@ data class Article(
     val updatedAt: String? = null,
     val editedAt: String? = null,
     val publishedAt: String? = null,
-    val editorState: String? = null,
-    val author: Author? = null,
-    val category: Category? = null
-)
-
-data class ArticlePage(
-    val items: List<Article>,
-    val start: Int,
-    val limit: Int,
-    val total: Int,
-    val hasMore: Boolean
+    val authorJson: String? = null,
+    val categoryJson: String? = null,
+    val cachedAt: Long = System.currentTimeMillis()
 )
