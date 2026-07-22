@@ -19,15 +19,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +66,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import dev.kawayilab.interknot.model.Article
+import dev.kawayilab.interknot.model.Comment
 import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
 
 @Composable
@@ -71,8 +77,13 @@ fun PostDetailScreen(
     viewModel: ArticleDetailViewModel = hiltViewModel()
 ) {
     val article by viewModel.article.collectAsStateWithLifecycle()
+    val comments by viewModel.comments.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isLoadingComments by viewModel.isLoadingComments.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    var comment by remember { mutableStateOf("") }
+    var commentError by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(postId) {
         viewModel.load(postId)
@@ -91,7 +102,7 @@ fun PostDetailScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "返回"
                             )
                         }
@@ -101,35 +112,93 @@ fun PostDetailScreen(
                     )
                 )
         },
-        bottomBar = { article?.let { ArticleActionsBar() } }
+        bottomBar = {
+            ArticleActionsBar(
+                comment = comment,
+                onCommentChange = { comment = it },
+                onSend = {
+                    viewModel.sendComment(comment) { result ->
+                        result.onSuccess {
+                            comment = ""
+                            commentError = null
+                        }.onFailure { commentError = it.message }
+                    }
+                },
+                article = article,
+                onLike = { viewModel.toggleLikeArticle {} }
+            )
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when {
-                isLoading && article == null -> {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = navBottom + 8.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                when {
+                    isLoading && article == null -> {
+                        item {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 120.dp)
+                            )
+                        }
+                    }
+
+                    error != null && article == null -> {
+                        item {
+                            Text(
+                                text = error ?: "加载失败",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 120.dp)
+                            )
+                        }
+                    }
+
+                    article != null -> {
+                        item {
+                            ArticleDetailContent(article = article!!)
+                        }
+                    }
                 }
 
-                error != null && article == null -> {
-                    Text(
-                        text = error ?: "加载失败",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                if (comments.isNotEmpty() || isLoadingComments) {
+                    item {
+                        Text(
+                            text = "评论",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
 
-                article != null -> {
-                    ArticleDetailContent(
-                        article = article!!,
-                        bottomPadding = 80.dp + navBottom + 16.dp
-                    )
+                    items(comments, key = { it.documentId }) { comment ->
+                        CommentItem(
+                            comment = comment,
+                            onLike = { viewModel.toggleLikeComment(comment) {} }
+                        )
+                    }
+
+                    if (isLoadingComments) {
+                        item {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -214,42 +283,26 @@ private fun AuthorHeader(article: Article) {
 }
 
 @Composable
-private fun ArticleDetailContent(
-    article: Article,
-    bottomPadding: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier
-) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            top = 16.dp,
-            end = 16.dp,
-            bottom = bottomPadding
-        ),
+private fun ArticleDetailContent(article: Article) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            CoverPager(article = article)
-        }
+        CoverPager(article = article)
 
-        item {
-            val extendedColors = LocalInterknotColors.current
-            val category = article.category?.name?.takeIf { it.isNotBlank() }
-            Text(
-                text = if (category != null) "[$category] ${article.title}" else article.title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
-            )
-        }
+        val extendedColors = LocalInterknotColors.current
+        val category = article.category?.name?.takeIf { it.isNotBlank() }
+        Text(
+            text = if (category != null) "[$category] ${article.title}" else article.title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
+        )
 
-        item {
-            Text(
-                text = article.text ?: "",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Text(
+            text = article.text ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
@@ -327,9 +380,13 @@ private fun CoverImage(url: String?, contentDescription: String?) {
 }
 
 @Composable
-private fun ArticleActionsBar() {
-    var comment by remember { mutableStateOf("") }
-
+private fun ArticleActionsBar(
+    comment: String,
+    onCommentChange: (String) -> Unit,
+    onSend: () -> Unit,
+    article: Article?,
+    onLike: () -> Unit
+) {
     BottomAppBar(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -338,7 +395,7 @@ private fun ArticleActionsBar() {
         actions = {
             TextField(
                 value = comment,
-                onValueChange = { comment = it },
+                onValueChange = onCommentChange,
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = MaterialTheme.shapes.extraLarge,
@@ -360,23 +417,35 @@ private fun ArticleActionsBar() {
                     focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     cursorColor = MaterialTheme.colorScheme.primary
-                )
+                ),
+                trailingIcon = {
+                    IconButton(onClick = onSend) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "发送",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             )
 
             ActionIcon(
-                icon = Icons.Default.ThumbUp,
+                icon = if (article?.liked == true) Icons.Default.ThumbUp else Icons.Default.ThumbUp,
                 contentDescription = "点赞",
-                onClick = {}
+                onClick = onLike,
+                tint = if (article?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             ActionIcon(
-                icon = Icons.Default.Star,
+                icon = if (article?.favorited == true) Icons.Default.Star else Icons.Default.StarBorder,
                 contentDescription = "收藏",
-                onClick = {}
+                onClick = {},
+                tint = if (article?.favorited == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             ActionIcon(
-                icon = Icons.Default.FavoriteBorder,
+                icon = if (article?.liked == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "喜欢",
-                onClick = {}
+                onClick = onLike,
+                tint = if (article?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             ActionIcon(
                 icon = Icons.Default.MoreVert,
@@ -391,14 +460,142 @@ private fun ArticleActionsBar() {
 private fun ActionIcon(
     icon: ImageVector,
     contentDescription: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     IconButton(onClick = onClick) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = tint
         )
+    }
+}
+
+@Composable
+private fun CommentItem(
+    comment: Comment,
+    onLike: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val extendedColors = LocalInterknotColors.current
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = comment.author?.avatarUrl,
+                    contentDescription = comment.author?.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = comment.author?.name ?: "匿名",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = comment.floor?.let { "#${it}楼" } ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onLike) {
+                    Icon(
+                        imageVector = if (comment.liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "点赞",
+                        tint = if (comment.liked) MaterialTheme.colorScheme.primary else extendedColors.titleRead,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Text(
+                    text = comment.likesCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Text(
+            text = comment.content,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        if (comment.replies.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 40.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                comment.replies.forEach { reply ->
+                    ReplyItem(reply = reply)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReplyItem(reply: Comment, modifier: Modifier = Modifier) {
+    val extendedColors = LocalInterknotColors.current
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = reply.author?.name ?: "匿名",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = formatTime(reply.createdAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = reply.content,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (reply.liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = "点赞",
+                tint = if (reply.liked) MaterialTheme.colorScheme.primary else extendedColors.titleRead,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = reply.likesCount.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

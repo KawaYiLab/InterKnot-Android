@@ -57,6 +57,7 @@ fun UserDto.toDomain(): User {
     return User(
         id = id,
         documentId = documentId,
+        authorDocumentId = author?.documentId,
         username = username,
         email = email,
         name = name ?: authorName ?: username,

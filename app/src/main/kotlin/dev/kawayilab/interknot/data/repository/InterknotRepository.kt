@@ -6,6 +6,8 @@ import dev.kawayilab.interknot.data.local.UserPreferences
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
+import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -87,4 +89,32 @@ class InterknotRepository @Inject constructor(
     ): Result<ArticlePage> = api.getArticles(start, limit, feed, category)
 
     suspend fun getArticle(documentId: String): Result<Article> = api.getArticle(documentId)
+
+    suspend fun getComments(articleDocumentId: String, start: Int, limit: Int): Result<CommentPage> =
+        api.getComments(articleDocumentId, start, limit)
+
+    suspend fun addComment(
+        articleDocumentId: String,
+        content: String,
+        parentDocumentId: String? = null,
+        isAnonymous: Boolean = false
+    ): Result<Unit> {
+        val authorId = user.value?.authorDocumentId ?: return Result.failure(IllegalStateException("未登录"))
+        return api.addComment(articleDocumentId, content, authorId, parentDocumentId, isAnonymous)
+    }
+
+    suspend fun toggleLike(targetType: String, targetId: String): Result<LikeResult> =
+        api.toggleLike(targetType, targetId)
+
+    suspend fun publishArticle(
+        title: String,
+        text: String,
+        category: String? = null,
+        isAnonymous: Boolean = false
+    ): Result<String> {
+        val authorId = user.value?.authorDocumentId ?: return Result.failure(IllegalStateException("未登录"))
+        return api.createArticleDraft(title, text, authorId, category, isAnonymous).onSuccess { documentId ->
+            api.publishArticle(documentId).getOrThrow()
+        }
+    }
 }

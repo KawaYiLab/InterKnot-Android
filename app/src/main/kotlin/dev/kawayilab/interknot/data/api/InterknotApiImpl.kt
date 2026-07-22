@@ -4,6 +4,8 @@ import dev.kawayilab.interknot.data.api.dto.ArticleDetailDto
 import dev.kawayilab.interknot.data.api.dto.ArticleListItemDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
 import dev.kawayilab.interknot.data.api.dto.CodeResultDto
+import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
+import dev.kawayilab.interknot.data.api.dto.LikeResultDto
 import dev.kawayilab.interknot.data.api.dto.PagedListDto
 import dev.kawayilab.interknot.data.api.dto.SingleDto
 import dev.kawayilab.interknot.data.api.dto.UserDto
@@ -11,6 +13,8 @@ import dev.kawayilab.interknot.data.api.dto.toDomain
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
+import dev.kawayilab.interknot.model.CommentPage
+import dev.kawayilab.interknot.model.LikeResult
 import dev.kawayilab.interknot.model.User
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -87,6 +91,84 @@ class InterknotApiImpl @Inject constructor(
     override suspend fun getArticle(documentId: String): Result<Article> = runCatching {
         val response: SingleDto<ArticleDetailDto> = client.authGet("articles/detail/$documentId")
         response.data.toDomain()
+    }
+
+    override suspend fun getComments(
+        articleDocumentId: String,
+        start: Int,
+        limit: Int
+    ): Result<CommentPage> = runCatching {
+        val response: CommentListResponseDto = client.authGet("comments/list") {
+            parameter("article", articleDocumentId)
+            parameter("start", start)
+            parameter("limit", limit)
+        }
+        response.toDomain(start)
+    }
+
+    override suspend fun addComment(
+        articleDocumentId: String,
+        content: String,
+        authorDocumentId: String,
+        parentDocumentId: String?,
+        isAnonymous: Boolean
+    ): Result<Unit> = runCatching {
+        client.authPost<Unit>("comments") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "data" to buildMap {
+                        put("article", articleDocumentId)
+                        put("content", content)
+                        put("author", authorDocumentId)
+                        if (!parentDocumentId.isNullOrBlank()) put("parent", parentDocumentId)
+                        if (isAnonymous) put("isAnonymous", true)
+                    }
+                )
+            )
+        }
+        Unit
+    }
+
+    override suspend fun toggleLike(targetType: String, targetId: String): Result<LikeResult> = runCatching {
+        val response: LikeResultDto = client.authPost("likes/toggle") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("targetType" to targetType, "targetId" to targetId))
+        }
+        response.toDomain()
+    }
+
+    override suspend fun createArticleDraft(
+        title: String,
+        text: String,
+        authorDocumentId: String,
+        category: String?,
+        isAnonymous: Boolean
+    ): Result<String> = runCatching {
+        val response: SingleDto<ArticleDetailDto> = client.authPost("articles") {
+            parameter("status", "draft")
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "data" to buildMap {
+                        put("title", title)
+                        put("text", text)
+                        put("author", mapOf("connect" to listOf(mapOf("documentId" to authorDocumentId))))
+                        if (!category.isNullOrBlank()) put("category", category)
+                        if (isAnonymous) put("isAnonymous", true)
+                    }
+                )
+            )
+        }
+        response.data.documentId
+    }
+
+    override suspend fun publishArticle(documentId: String): Result<Unit> = runCatching {
+        client.authPost<Unit>("articles/$documentId/publish") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        Unit
     }
 }
 
