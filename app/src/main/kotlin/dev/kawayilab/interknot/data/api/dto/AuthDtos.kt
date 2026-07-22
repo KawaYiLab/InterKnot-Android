@@ -24,7 +24,7 @@ data class UserAuthorDto(
 
 @Serializable
 data class UserDto(
-    val id: String? = null,
+    val id: Int? = null,
     val documentId: String? = null,
     val username: String? = null,
     val email: String? = null,
@@ -57,7 +57,7 @@ fun UserDto.toDomain(): User {
     val authorName = author?.name
     val authorAvatar = author?.avatar.extractImageUrl()
     return User(
-        id = id,
+        id = id?.toString(),
         documentId = documentId,
         authorDocumentId = author?.documentId,
         username = username,

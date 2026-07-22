@@ -47,7 +47,7 @@ data class FollowCheckResultDto(val data: Map<String, Boolean> = emptyMap())
 data class ArticleRefDto(
     val documentId: String? = null,
     val title: String? = null,
-    val cover: String? = null,
+    val cover: ImageMetaDto? = null,
     val updatedAt: String? = null,
     val likesCount: Int? = null
 )
@@ -100,7 +100,7 @@ fun TripleResultDto.toDomain() = TripleResult(
 fun ArticleRefDto.toDomain() = ArticleRef(
     documentId = documentId ?: "",
     title = title,
-    coverUrl = cover,
+    coverUrl = cover?.url,
     updatedAt = updatedAt
 )
 

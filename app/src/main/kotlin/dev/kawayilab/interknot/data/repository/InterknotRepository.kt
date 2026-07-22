@@ -119,8 +119,10 @@ class InterknotRepository @Inject constructor(
         isAnonymous: Boolean = false
     ): Result<String> {
         val authorId = user.value?.authorDocumentId ?: return Result.failure(IllegalStateException("未登录"))
-        return api.createArticleDraft(title, text, authorId, category, isAnonymous).onSuccess { documentId ->
+        return runCatching {
+            val documentId = api.createArticleDraft(title, text, authorId, category, isAnonymous).getOrThrow()
             api.publishArticle(documentId).getOrThrow()
+            documentId
         }
     }
 

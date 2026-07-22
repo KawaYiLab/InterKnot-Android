@@ -8,6 +8,7 @@ data class Comment(
     val likesCount: Int = 0,
     val createdAt: String? = null,
     val author: Author? = null,
+    val article: ArticleRef? = null,
     val replies: List<Comment> = emptyList(),
     val isPinned: Boolean = false,
     val pinnedAt: String? = null,

@@ -61,14 +61,14 @@ fun KnockNotificationDto.toDomain() = KnockNotification(
 
 @Serializable
 data class KnockSenderDto(
-    val id: String? = null,
+    val id: Int? = null,
     val username: String? = null,
     val level: Int? = null,
     val author: KnockSenderAuthorDto? = null
 )
 
 fun KnockSenderDto.toDomain() = KnockSender(
-    id = id,
+    id = id?.toString(),
     username = username,
     level = level,
     author = author?.toDomain()
