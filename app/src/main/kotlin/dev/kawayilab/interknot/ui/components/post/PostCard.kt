@@ -44,6 +44,8 @@ import coil.compose.SubcomposeAsyncImageContent
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
+import dev.kawayilab.interknot.ui.theme.Motion
+import dev.kawayilab.interknot.ui.theme.Spacing
 
 @Composable
 fun PostCard(
@@ -54,7 +56,8 @@ fun PostCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = Motion.pressSpec(),
         label = "postCardPress"
     )
 
@@ -151,7 +154,7 @@ private fun TitleOverlay(
                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                 )
             )
-            .padding(12.dp),
+            .padding(Spacing.md),
         contentAlignment = Alignment.BottomStart
     ) {
         Text(
@@ -169,9 +172,9 @@ private fun PostMeta(article: Article) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Box(
             modifier = Modifier
@@ -227,7 +230,7 @@ private fun DefaultAvatarIcon() {
 private fun LikeChip(count: Int) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Icon(
             imageVector = Icons.Outlined.FavoriteBorder,
@@ -259,8 +262,26 @@ private fun formatCount(count: Int): String {
 
 @Preview
 @Composable
-private fun PostCardPreview() {
-    InterknotTheme {
+private fun PostCardPreviewDark() {
+    InterknotTheme(darkTheme = true) {
+        PostCard(
+            article = Article(
+                documentId = "1",
+                title = "测试委托标题，最多显示两行",
+                coverUrl = null,
+                views = 1234,
+                likesCount = 88,
+                author = Author(name = "测试用户")
+            ),
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PostCardPreviewLight() {
+    InterknotTheme(darkTheme = false) {
         PostCard(
             article = Article(
                 documentId = "1",
