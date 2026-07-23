@@ -108,8 +108,8 @@ import kotlinx.coroutines.launch
 fun PostDetailScreen(
     postId: String,
     onNavigateBack: () -> Unit,
-    onAuthorClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onAuthorClick: (String) -> Unit = {},
     viewModel: ArticleDetailViewModel = hiltViewModel()
 ) {
     val article by viewModel.article.collectAsStateWithLifecycle()
