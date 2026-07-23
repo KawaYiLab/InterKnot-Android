@@ -49,3 +49,17 @@ data class KnockCommentRef(
     val images: List<ImageMeta> = emptyList(),
     val isAnonymous: Boolean = false
 )
+
+data class KnockMessagePage(
+    val items: List<KnockNotification>,
+    val nextCursor: String? = null,
+    val hasMore: Boolean = false
+)
+
+data class NotificationPage(
+    val items: List<KnockNotification>,
+    val start: Int = 0,
+    val limit: Int = 0,
+    val total: Int = 0,
+    val hasMore: Boolean = false
+)

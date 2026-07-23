@@ -24,7 +24,7 @@ data class UserAuthorDto(
 
 @Serializable
 data class UserDto(
-    val id: String? = null,
+    val id: Int? = null,
     val documentId: String? = null,
     val username: String? = null,
     val email: String? = null,
@@ -32,6 +32,8 @@ data class UserDto(
     val level: Int? = null,
     val isAdmin: Boolean? = null,
     val examPassed: Boolean? = null,
+    val examPassedAt: String? = null,
+    val profileHidden: Boolean? = null,
     val name: String? = null,
     val avatar: JsonElement? = null,
     val author: UserAuthorDto? = null
@@ -55,7 +57,7 @@ fun UserDto.toDomain(): User {
     val authorName = author?.name
     val authorAvatar = author?.avatar.extractImageUrl()
     return User(
-        id = id,
+        id = id?.toString(),
         documentId = documentId,
         authorDocumentId = author?.documentId,
         username = username,
@@ -65,13 +67,21 @@ fun UserDto.toDomain(): User {
         level = level,
         exp = exp,
         isAdmin = isAdmin ?: false,
-        examPassed = examPassed
+        examPassed = examPassed,
+        examPassedAt = examPassedAt,
+        profileHidden = profileHidden ?: false
     )
 }
 
 fun AuthResponseDto.toDomain() = AuthResult(token = jwt, user = user.toDomain())
 
+@Serializable
+data class ResetPasswordResultDto(val success: Boolean = false)
+
+@Serializable
+data class RenewTokenResponseDto(val jwt: String)
+
 fun CodeResultDto.toDomain(): Pair<Boolean, Int> {
     val cooldownValue = cooldown ?: expiresIn ?: 60
-    return (sent == true) to cooldownValue
+    return true to cooldownValue
 }

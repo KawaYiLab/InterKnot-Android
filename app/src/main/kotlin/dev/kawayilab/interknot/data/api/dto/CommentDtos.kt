@@ -8,11 +8,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class CommentAuthorDto(
-    val id: String? = null,
+    val id: Int? = null,
     val documentId: String? = null,
     val name: String? = null,
     val login: String? = null,
-    val avatar: String? = null,
+    val avatar: ImageMetaDto? = null,
     val level: Int? = null,
     val isAiAgent: Boolean? = null
 )
@@ -34,6 +34,7 @@ data class CommentDto(
     val likesCount: Int? = null,
     val createdAt: String? = null,
     val author: CommentAuthorDto? = null,
+    val article: ArticleRefDto? = null,
     val replies: List<CommentDto>? = null,
     val isPinned: Boolean? = null,
     val pinnedAt: String? = null,
@@ -62,7 +63,9 @@ private fun CommentAuthorDto.toDomain() = Author(
     documentId = documentId,
     username = login,
     name = name ?: login,
-    avatarUrl = avatar,
+    avatarUrl = avatar?.url,
+    avatarWidth = avatar?.width,
+    avatarHeight = avatar?.height,
     level = level
 )
 
@@ -81,6 +84,7 @@ private fun CommentDto.toDomain(): Comment = Comment(
     likesCount = likesCount ?: 0,
     createdAt = createdAt,
     author = author?.toDomain(),
+    article = article?.toDomain(),
     replies = replies?.map { it.toDomain() } ?: emptyList(),
     isPinned = isPinned == true,
     pinnedAt = pinnedAt,
