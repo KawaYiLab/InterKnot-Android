@@ -4,6 +4,7 @@ import dev.kawayilab.interknot.data.api.InterknotApi
 import dev.kawayilab.interknot.model.FileInfo
 import dev.kawayilab.interknot.model.UploadedFile
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.headers
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -17,9 +18,10 @@ import javax.inject.Singleton
 
 @Singleton
 class DirectUploadManager @Inject constructor(
-    private val api: InterknotApi,
-    private val client: HttpClient
+    private val api: InterknotApi
 ) {
+    private val uploadClient = HttpClient(OkHttp)
+
     suspend fun upload(
         bytes: ByteArray,
         filename: String,
@@ -45,7 +47,7 @@ class DirectUploadManager @Inject constructor(
         val uploadUrl = signResult.uploadUrl ?: error("Missing uploadUrl")
         val uploadToken = signResult.uploadToken ?: error("Missing uploadToken")
 
-        val response = client.put(uploadUrl) {
+        val response = uploadClient.put(uploadUrl) {
             headers {
                 signResult.headers.forEach { (key, value) ->
                     if (key.equals("Content-Type", ignoreCase = true)) {

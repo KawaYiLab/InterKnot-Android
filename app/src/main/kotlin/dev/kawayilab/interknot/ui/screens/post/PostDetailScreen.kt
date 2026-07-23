@@ -89,10 +89,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import dev.kawayilab.interknot.ui.components.common.InterknotImage
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.model.Comment
@@ -246,7 +246,10 @@ fun PostDetailScreen(
                     }
 
                     article != null -> {
-                        item { ArticleDetailContent(article = article!!) }
+                        val currentArticle = article
+                        if (currentArticle != null) {
+                            item { ArticleDetailContent(article = currentArticle) }
+                        }
 
                         pinnedComment?.let { pinned ->
                             item { PinnedBadge() }
@@ -260,10 +263,10 @@ fun PostDetailScreen(
                             item { Spacer(modifier = Modifier.height(Spacing.sm)) }
                         }
 
-                        if (comments.isNotEmpty() || isLoadingComments || pinnedComment == null) {
+                        if (currentArticle != null && (comments.isNotEmpty() || isLoadingComments || pinnedComment == null)) {
                             item {
                                 Text(
-                                    text = "评论 ${article!!.commentsCount}",
+                                    text = "评论 ${currentArticle.commentsCount}",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onBackground,
                                     fontWeight = FontWeight.SemiBold,
@@ -618,13 +621,14 @@ private fun CoverImage(url: String?, contentDescription: String?, aspectRatio: F
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        AsyncImage(
+        InterknotImage(
             model = url,
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
+            nsfwStatus = nsfwStatus,
             modifier = Modifier.fillMaxSize()
         )
-        if (nsfwStatus != null && nsfwStatus != "safe") {
+        if (nsfwStatus != null && nsfwStatus != "safe" && nsfwStatus != "approved" && nsfwStatus.isNotBlank()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

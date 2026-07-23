@@ -88,6 +88,8 @@ fun ExamScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            val reviewValue = review
+            val submitResultValue = submitResult
             when {
                 isLoading && status == null -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
@@ -98,13 +100,13 @@ fun ExamScreen(
                     onRetry = { viewModel.loadStatus() },
                     modifier = Modifier.align(Alignment.Center)
                 )
-                review != null -> ExamReviewView(
-                    review = review!!,
+                reviewValue != null -> ExamReviewView(
+                    review = reviewValue,
                     onBack = { viewModel.reset(); viewModel.loadStatus() },
                     modifier = Modifier.fillMaxSize()
                 )
-                submitResult != null -> ExamResultView(
-                    result = submitResult!!,
+                submitResultValue != null -> ExamResultView(
+                    result = submitResultValue,
                     onReview = { viewModel.loadReview() },
                     onBack = onNavigateBack,
                     modifier = Modifier.fillMaxSize()

@@ -185,7 +185,14 @@ class ProfileViewModel @Inject constructor(
     fun updateBio(bio: String, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             repository.updateBio(bio)
-                .onSuccess { onDone(true) }
+                .onSuccess { result ->
+                    _profile.value = _profile.value?.copy(
+                        author = _profile.value?.author?.copy(
+                            bio = result.bio ?: bio
+                        ) ?: return@onSuccess
+                    )
+                    onDone(true)
+                }
                 .onFailure { _error.value = it.message ?: "修改签名失败"; onDone(false) }
         }
     }
@@ -193,7 +200,14 @@ class ProfileViewModel @Inject constructor(
     fun updateVisibility(hidden: Boolean, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             repository.updateVisibility(hidden)
-                .onSuccess { onDone(true) }
+                .onSuccess { result ->
+                    _profile.value = _profile.value?.copy(
+                        author = _profile.value?.author?.copy(
+                            isHidden = result.profileHidden
+                        ) ?: return@onSuccess
+                    )
+                    onDone(true)
+                }
                 .onFailure { _error.value = it.message ?: "修改可见性失败"; onDone(false) }
         }
     }

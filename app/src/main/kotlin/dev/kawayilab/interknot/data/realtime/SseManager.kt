@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -47,7 +48,7 @@ class SseManager @Inject constructor(
         if (token.isNullOrBlank()) return
         disconnect()
         job = scope.launch {
-            while (isActive) {
+            while (coroutineContext.isActive) {
                 try {
                     listen(token)
                 } catch (e: CancellationException) {
@@ -72,7 +73,7 @@ class SseManager @Inject constructor(
         scope.cancel()
     }
 
-    private fun listen(token: String) {
+    private suspend fun listen(token: String) {
         val url = "${BuildConfig.API_BASE_URL}knock/stream?token=$token"
         val request = Request.Builder()
             .url(url)
@@ -84,14 +85,15 @@ class SseManager @Inject constructor(
         val localCall = client.newCall(request)
         call = localCall
         val response: Response = localCall.execute()
-        if (!response.isSuccessful || response.body == null) {
+        val body = response.body
+        if (!response.isSuccessful || body == null) {
             throw IllegalStateException("SSE connect failed: ${response.code}")
         }
 
-        val source = response.body!!.source()
+        val source = body.source()
         var eventType = "message"
         val eventData = StringBuilder()
-        while (job?.isActive != false) {
+        while (coroutineContext.isActive) {
             val line = source.readUtf8Line() ?: break
             if (line.isEmpty()) {
                 if (eventData.isNotEmpty()) {
