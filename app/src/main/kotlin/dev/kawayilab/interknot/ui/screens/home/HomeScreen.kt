@@ -181,7 +181,7 @@ fun HomeScreen(
 
                 if (error != null && !isRefreshing && articles.isEmpty()) {
                     ErrorState(
-                        message = error!!,
+                        message = error ?: "加载失败",
                         onRetry = { viewModel.pullRefresh() }
                     )
                 }

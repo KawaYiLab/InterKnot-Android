@@ -124,7 +124,7 @@ private fun CoverSection(article: Article, imageUrl: String) {
             }
         }
 
-        if (article.coverNsfwStatus != null && article.coverNsfwStatus != "safe") {
+        if (article.coverNsfwStatus != null && article.coverNsfwStatus != "safe" && article.coverNsfwStatus != "approved") {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

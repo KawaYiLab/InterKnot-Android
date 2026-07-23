@@ -20,6 +20,7 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.UploadedFile
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class CreateViewModel @Inject constructor(
@@ -199,10 +201,13 @@ class CreateViewModel @Inject constructor(
 
     private suspend fun uploadImage(uri: Uri): UploadedFile? {
         return runCatching {
-            val resolver = context.contentResolver
-            val originalBytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-            val compressed = compressImage(originalBytes, getFilename(uri) ?: "image.jpg")
-            uploadManager.upload(compressed.bytes, compressed.filename, "image/jpeg", compressed.width, compressed.height).getOrThrow()
+            withContext(Dispatchers.IO) {
+                val resolver = context.contentResolver
+                val originalBytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return@withContext null
+                val compressed = compressImage(originalBytes, getFilename(uri) ?: "image.jpg")
+                uploadManager.upload(compressed.bytes, compressed.filename, "image/jpeg", compressed.width, compressed.height).getOrThrow()
+            }
         }.getOrNull()
     }
 

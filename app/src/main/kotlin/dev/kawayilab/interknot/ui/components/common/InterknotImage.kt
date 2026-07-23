@@ -23,7 +23,10 @@ fun InterknotImage(
     errorColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.errorContainer
 ) {
     val context = LocalContext.current
-    val isNsfw = nsfwStatus != null && nsfwStatus != "approved" && nsfwStatus.isNotBlank()
+    val isNsfw = nsfwStatus != null &&
+            nsfwStatus != "safe" &&
+            nsfwStatus != "approved" &&
+            nsfwStatus.isNotBlank()
     val blurModifier = if (isNsfw) Modifier.blur(24.dp) else Modifier
 
     AsyncImage(

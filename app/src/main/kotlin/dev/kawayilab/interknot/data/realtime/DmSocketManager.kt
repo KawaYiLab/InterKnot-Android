@@ -83,7 +83,7 @@ class DmSocketManager @Inject constructor(
             try {
                 val base = Url(BuildConfig.API_BASE_URL)
                 val url = URLBuilder().takeFrom(base).apply {
-                    protocol = URLProtocol.WS
+                    protocol = if (base.protocol.name.equals("https", ignoreCase = true)) URLProtocol.WSS else URLProtocol.WS
                     encodedPath = "/dm/socket"
                     parameters.append("ticket", ticket)
                 }.build()

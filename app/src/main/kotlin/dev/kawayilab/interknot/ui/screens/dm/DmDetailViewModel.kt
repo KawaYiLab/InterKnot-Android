@@ -17,10 +17,12 @@ import dev.kawayilab.interknot.model.DmConversationDetail
 import dev.kawayilab.interknot.model.DmMessage
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class DmDetailViewModel @Inject constructor(
@@ -217,10 +219,13 @@ class DmDetailViewModel @Inject constructor(
 
     private suspend fun uploadImage(uri: Uri): dev.kawayilab.interknot.model.UploadedFile? {
         return runCatching {
-            val resolver = context.contentResolver
-            val originalBytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-            val compressed = compressImage(originalBytes, getFilename(uri) ?: "image.jpg")
-            uploadManager.upload(compressed.bytes, compressed.filename, "image/jpeg", compressed.width, compressed.height).getOrThrow()
+            withContext(Dispatchers.IO) {
+                val resolver = context.contentResolver
+                val originalBytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return@withContext null
+                val compressed = compressImage(originalBytes, getFilename(uri) ?: "image.jpg")
+                uploadManager.upload(compressed.bytes, compressed.filename, "image/jpeg", compressed.width, compressed.height).getOrThrow()
+            }
         }.getOrNull()
     }
 
