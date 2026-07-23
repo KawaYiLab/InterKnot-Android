@@ -47,4 +47,7 @@ data class DmDetail(
 ) : InterknotRoute(requiresLogin = true)
 
 @Serializable
+data object Exam : InterknotRoute(requiresLogin = true)
+
+@Serializable
 data class Login(val redirectToKey: InterknotRoute? = null) : InterknotRoute()

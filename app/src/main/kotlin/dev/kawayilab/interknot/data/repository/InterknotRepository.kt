@@ -192,6 +192,23 @@ class InterknotRepository @Inject constructor(
         }
     }
 
+    suspend fun saveArticleDraft(
+        title: String,
+        text: String,
+        category: String? = null,
+        isAnonymous: Boolean = false,
+        coverDocumentIds: List<String>? = null,
+        existingDocumentId: String? = null
+    ): Result<String> {
+        val authorId = user.value?.authorDocumentId ?: return Result.failure(IllegalStateException("未登录"))
+        return if (!existingDocumentId.isNullOrBlank()) {
+            api.updateArticle(existingDocumentId, title, text, category, isAnonymous, coverDocumentIds)
+                .map { it.documentId }
+        } else {
+            api.createArticleDraft(title, text, authorId, category, isAnonymous, coverDocumentIds)
+        }
+    }
+
     suspend fun searchArticles(
         query: String,
         start: Int = 0,

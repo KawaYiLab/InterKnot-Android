@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.model.User
+import kotlinx.serialization.decodeFromString
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ class UserPreferences @Inject constructor(
         val TOKEN = stringPreferencesKey("token")
         val USER = stringPreferencesKey("user")
         val SEARCH_HISTORY = stringPreferencesKey("search_history")
+        val DRAFT = stringPreferencesKey("create_draft")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[Keys.TOKEN] }
@@ -54,6 +56,20 @@ class UserPreferences @Inject constructor(
 
     suspend fun clearSearchHistory() {
         dataStore.edit { it.remove(Keys.SEARCH_HISTORY) }
+    }
+
+    val createDraft: Flow<CreateDraft?> = dataStore.data.map { prefs ->
+        prefs[Keys.DRAFT]?.let { raw ->
+            runCatching { json.decodeFromString<CreateDraft>(raw) }.getOrNull()
+        }
+    }
+
+    suspend fun saveCreateDraft(draft: CreateDraft) {
+        dataStore.edit { it[Keys.DRAFT] = json.encodeToString(draft) }
+    }
+
+    suspend fun clearCreateDraft() {
+        dataStore.edit { it.remove(Keys.DRAFT) }
     }
 
     suspend fun saveSession(token: String, user: User) {

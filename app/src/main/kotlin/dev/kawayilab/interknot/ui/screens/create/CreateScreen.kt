@@ -64,6 +64,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreateScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToExam: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: CreateViewModel = hiltViewModel()
 ) {
@@ -120,7 +121,10 @@ fun CreateScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            ExamBanner(examStatus = examStatus)
+            ExamBanner(
+                examStatus = examStatus,
+                onNavigateToExam = onNavigateToExam
+            )
 
             OutlinedTextField(
                 value = title,
@@ -235,6 +239,7 @@ private fun CategoryChips(
 @Composable
 private fun ExamBanner(
     examStatus: dev.kawayilab.interknot.model.ExamStatus?,
+    onNavigateToExam: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val passed = examStatus?.passed == true
@@ -244,10 +249,11 @@ private fun ExamBanner(
         modifier = modifier
             .fillMaxWidth()
             .background(color, shape = MaterialTheme.shapes.medium)
+            .then(if (passed) Modifier else Modifier.clickable { onNavigateToExam() })
             .padding(Spacing.md)
     ) {
         Text(
-            text = if (passed) "已通过入站考试，可以发布" else "未通过入站考试，发布前需先通过考试",
+            text = if (passed) "已通过入站考试，可以发布" else "未通过入站考试，点击前往考试",
             color = textColor,
             style = MaterialTheme.typography.bodyMedium
         )

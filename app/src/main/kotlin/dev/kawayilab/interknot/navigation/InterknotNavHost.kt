@@ -24,6 +24,7 @@ import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
 import dev.kawayilab.interknot.ui.screens.create.CreateScreen
 import dev.kawayilab.interknot.ui.screens.dm.DmDetailScreen
 import dev.kawayilab.interknot.ui.screens.dm.DmListScreen
+import dev.kawayilab.interknot.ui.screens.exam.ExamScreen
 import dev.kawayilab.interknot.ui.screens.explore.ExploreScreen
 import dev.kawayilab.interknot.ui.screens.home.HomeScreen
 import dev.kawayilab.interknot.ui.screens.knock.KnockScreen
@@ -85,7 +86,13 @@ fun InterknotNavHost(
                         HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
                     }
                     entry<Knock> { KnockScreen() }
-                    entry<Create> { CreateScreen(onNavigateBack = { backStack.goBack() }) }
+                    entry<Create> {
+                        CreateScreen(
+                            onNavigateBack = { backStack.goBack() },
+                            onNavigateToExam = { backStack.navigate(Exam) }
+                        )
+                    }
+                    entry<Exam> { ExamScreen(onNavigateBack = { backStack.goBack() }) }
                     entry<Level> { LevelScreen() }
                     entry<Explore> {
                         ExploreScreen(
