@@ -108,6 +108,18 @@ fun PostCard(
     }
 }
 
+private const val DEFAULT_COVER_WIDTH = 643f
+private const val DEFAULT_COVER_HEIGHT = 408f
+private const val DEFAULT_COVER_ASPECT_RATIO = DEFAULT_COVER_WIDTH / DEFAULT_COVER_HEIGHT
+
+private fun normalizeCoverAspectRatio(raw: Float): Float {
+    return when {
+        raw >= 1.05f -> 4f / 3f
+        raw <= 0.95f -> 3f / 4f
+        else -> 1f
+    }
+}
+
 @Composable
 private fun CoverSection(
     article: Article,
@@ -115,9 +127,9 @@ private fun CoverSection(
     defaultCover: androidx.compose.ui.graphics.painter.Painter
 ) {
     val aspectRatio = if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
-        article.coverWidth.toFloat() / article.coverHeight.toFloat()
+        normalizeCoverAspectRatio(article.coverWidth.toFloat() / article.coverHeight.toFloat())
     } else {
-        0.75f
+        DEFAULT_COVER_ASPECT_RATIO
     }
 
     Box(

@@ -546,6 +546,11 @@ private fun StatText(text: String) {
     )
 }
 
+private const val DEFAULT_COVER_WIDTH = 643f
+private const val DEFAULT_COVER_HEIGHT = 408f
+private const val DEFAULT_COVER_ASPECT_RATIO = DEFAULT_COVER_WIDTH / DEFAULT_COVER_HEIGHT
+private const val MIN_COVER_ASPECT_RATIO = 0.80f
+
 @Composable
 private fun CoverPager(article: Article) {
     val defaultCover = painterResource(R.drawable.default_cover)
@@ -557,11 +562,11 @@ private fun CoverPager(article: Article) {
 
     val firstImage = article.coverImages.firstOrNull()
     val aspectRatio = if (firstImage?.width != null && firstImage.height != null && firstImage.height > 0) {
-        firstImage.width.toFloat() / firstImage.height.toFloat()
+        (firstImage.width.toFloat() / firstImage.height.toFloat()).coerceAtLeast(MIN_COVER_ASPECT_RATIO)
     } else if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
-        article.coverWidth.toFloat() / article.coverHeight.toFloat()
+        (article.coverWidth.toFloat() / article.coverHeight.toFloat()).coerceAtLeast(MIN_COVER_ASPECT_RATIO)
     } else {
-        0.75f
+        DEFAULT_COVER_ASPECT_RATIO
     }
 
     if (images.isEmpty()) {
