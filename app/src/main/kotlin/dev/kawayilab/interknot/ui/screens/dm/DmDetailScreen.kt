@@ -62,9 +62,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import dev.kawayilab.interknot.model.DmConversationDetail
 import dev.kawayilab.interknot.model.DmMessage
+import dev.kawayilab.interknot.ui.components.common.InterknotImage
 
 @Composable
 fun DmDetailScreen(
@@ -226,9 +226,9 @@ private fun DmMessageBubble(
         horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start
     ) {
         if (!isSelf) {
-            AsyncImage(
+            InterknotImage(
                 model = message.sender?.avatar,
-                contentDescription = null,
+                contentDescription = "头像",
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
@@ -245,9 +245,9 @@ private fun DmMessageBubble(
                 )
             }
             if (message.kind == "image" && message.content != null && message.deletedAt == null) {
-                AsyncImage(
+                InterknotImage(
                     model = message.content,
-                    contentDescription = null,
+                    contentDescription = "图片",
                     modifier = Modifier
                         .sizeIn(maxWidth = 200.dp, maxHeight = 200.dp)
                         .padding(horizontal = 4.dp)

@@ -33,6 +33,7 @@ import dev.kawayilab.interknot.ui.screens.login.LoginScreen
 import dev.kawayilab.interknot.ui.screens.post.PostDetailScreen
 import dev.kawayilab.interknot.ui.screens.profile.ProfileScreen
 import dev.kawayilab.interknot.ui.screens.search.SearchScreen
+import dev.kawayilab.interknot.ui.screens.settings.SettingsScreen
 
 @Composable
 fun InterknotNavHost(
@@ -114,7 +115,8 @@ fun InterknotNavHost(
                             onNavigateToDm = { userId, name ->
                                 backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
                             },
-                            onNavigateToDmList = { backStack.navigate(DmList) }
+                            onNavigateToDmList = { backStack.navigate(DmList) },
+                            onNavigateToSettings = { backStack.navigate(Settings) }
                         )
                     }
                     entry<ProfileDetail> { key ->
@@ -126,8 +128,12 @@ fun InterknotNavHost(
                             onNavigateToDm = { userId, name ->
                                 backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
                             },
-                            onNavigateToDmList = { }
+                            onNavigateToDmList = { },
+                            onNavigateToSettings = { }
                         )
+                    }
+                    entry<Settings> {
+                        SettingsScreen(onNavigateBack = { backStack.goBack() })
                     }
                     entry<PostDetail> { key ->
                         PostDetailScreen(

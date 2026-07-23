@@ -41,8 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.ui.components.common.InterknotImage
 
 @Composable
 fun DmListScreen(
@@ -121,9 +121,9 @@ private fun DmConversationItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
+        InterknotImage(
             model = peer?.avatar ?: conversation.avatar,
-            contentDescription = null,
+            contentDescription = "头像",
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)

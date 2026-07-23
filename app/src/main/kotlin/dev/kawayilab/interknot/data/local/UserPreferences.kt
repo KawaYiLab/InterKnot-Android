@@ -31,6 +31,7 @@ class UserPreferences @Inject constructor(
         val USER = stringPreferencesKey("user")
         val SEARCH_HISTORY = stringPreferencesKey("search_history")
         val DRAFT = stringPreferencesKey("create_draft")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
     val token: Flow<String?> = dataStore.data.map { it[Keys.TOKEN] }
@@ -70,6 +71,24 @@ class UserPreferences @Inject constructor(
 
     suspend fun clearCreateDraft() {
         dataStore.edit { it.remove(Keys.DRAFT) }
+    }
+
+    val themeMode: Flow<ThemeMode> = dataStore.data.map { prefs ->
+        when (prefs[Keys.THEME_MODE]) {
+            "light" -> ThemeMode.LIGHT
+            "dark" -> ThemeMode.DARK
+            else -> ThemeMode.SYSTEM
+        }
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[Keys.THEME_MODE] = mode.value }
+    }
+
+    enum class ThemeMode(val value: String) {
+        SYSTEM("system"),
+        LIGHT("light"),
+        DARK("dark")
     }
 
     suspend fun saveSession(token: String, user: User) {

@@ -3,6 +3,8 @@ package dev.kawayilab.interknot.data.repository
 import dev.kawayilab.interknot.data.api.InterknotApi
 import dev.kawayilab.interknot.data.api.TokenManager
 import dev.kawayilab.interknot.data.local.UserPreferences
+import dev.kawayilab.interknot.data.local.cache.CachedArticle
+import dev.kawayilab.interknot.data.local.cache.CachedArticleDao
 import dev.kawayilab.interknot.data.local.cache.CachedSearch
 import dev.kawayilab.interknot.data.local.cache.CachedSearchDao
 import dev.kawayilab.interknot.model.Article
@@ -32,6 +34,7 @@ import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.ExamSubmitResult
 import dev.kawayilab.interknot.model.FavoriteResult
 import dev.kawayilab.interknot.model.FollowResult
+import dev.kawayilab.interknot.model.ImageMeta
 import dev.kawayilab.interknot.model.KnockConversation
 import dev.kawayilab.interknot.model.KnockNotification
 import dev.kawayilab.interknot.model.LikeResult
@@ -55,11 +58,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.builtins.ListSerializer
 
 @Singleton
 class InterknotRepository @Inject constructor(
     private val api: InterknotApi,
     private val preferences: UserPreferences,
+    private val cachedArticleDao: CachedArticleDao,
     private val cachedSearchDao: CachedSearchDao,
     private val json: Json
 ) {
@@ -129,9 +134,32 @@ class InterknotRepository @Inject constructor(
         limit: Int,
         feed: String = "recommend",
         category: String? = null
-    ): Result<ArticlePage> = api.getArticles(start, limit, feed, category)
+    ): Result<ArticlePage> {
+        return api.getArticles(start, limit, feed, category)
+            .onSuccess { page ->
+                if (start == 0) {
+                    cacheArticles(page.items)
+                }
+            }
+            .recoverCatching {
+                if (start == 0) {
+                    val cached = cachedArticleDao.getRecent(limit)
+                        .map { it.toArticle() }
+                        .takeIf { it.isNotEmpty() }
+                    cached?.let { ArticlePage(it, 0, limit, it.size, false) }
+                        ?: throw it
+                } else throw it
+            }
+    }
 
-    suspend fun getArticle(documentId: String): Result<Article> = api.getArticle(documentId)
+    suspend fun getArticle(documentId: String): Result<Article> {
+        return api.getArticle(documentId)
+            .onSuccess { cacheArticles(listOf(it)) }
+            .recoverCatching {
+                cachedArticleDao.get(documentId)?.toArticle()?.let { return@recoverCatching it }
+                throw it
+            }
+    }
 
     suspend fun getComments(articleDocumentId: String, start: Int, limit: Int): Result<CommentPage> =
         api.getComments(articleDocumentId, start, limit)
@@ -336,4 +364,70 @@ class InterknotRepository @Inject constructor(
     suspend fun getDennyBalance(): Result<DennyBalance> = api.getDennyBalance()
 
     suspend fun giveDenny(articleId: String, message: String? = null): Result<DennyGiveResult> = api.giveDenny(articleId, message)
+
+    private suspend fun cacheArticles(articles: List<Article>) {
+        runCatching { cachedArticleDao.insertAll(articles.map { it.toCachedArticle() }) }
+    }
+
+    private fun Article.toCachedArticle(): CachedArticle = CachedArticle(
+        documentId = documentId,
+        title = title,
+        text = text,
+        coverUrl = coverUrl,
+        coverWidth = coverWidth,
+        coverHeight = coverHeight,
+        coverNsfwStatus = coverNsfwStatus,
+        coverImagesJson = coverImages.takeIf { it.isNotEmpty() }?.let { json.encodeToString(ListSerializer(ImageMeta.serializer()), it) },
+        views = views,
+        likesCount = likesCount,
+        commentsCount = commentsCount,
+        dennyCount = dennyCount,
+        favoritesCount = favoritesCount,
+        liked = liked,
+        favorited = favorited,
+        hasGivenDenny = hasGivenDenny,
+        isRead = isRead,
+        isAnonymous = isAnonymous,
+        isHidden = isHidden,
+        isOwner = isOwner,
+        hasPublishedVersion = hasPublishedVersion,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        editedAt = editedAt,
+        publishedAt = publishedAt,
+        authorJson = author?.let { json.encodeToString(Author.serializer(), it) },
+        categoryJson = category?.let { json.encodeToString(Category.serializer(), it) }
+    )
+
+    private fun CachedArticle.toArticle(): Article = Article(
+        documentId = documentId,
+        title = title,
+        text = text,
+        coverUrl = coverUrl,
+        coverWidth = coverWidth,
+        coverHeight = coverHeight,
+        coverNsfwStatus = coverNsfwStatus,
+        coverImages = coverImagesJson?.let {
+            runCatching { json.decodeFromString(ListSerializer(ImageMeta.serializer()), it) }.getOrDefault(emptyList())
+        } ?: emptyList(),
+        views = views,
+        likesCount = likesCount,
+        commentsCount = commentsCount,
+        dennyCount = dennyCount,
+        favoritesCount = favoritesCount,
+        liked = liked,
+        favorited = favorited,
+        hasGivenDenny = hasGivenDenny,
+        isRead = isRead,
+        isAnonymous = isAnonymous,
+        isHidden = isHidden,
+        isOwner = isOwner,
+        hasPublishedVersion = hasPublishedVersion,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        editedAt = editedAt,
+        publishedAt = publishedAt,
+        author = authorJson?.let { runCatching { json.decodeFromString(Author.serializer(), it) }.getOrNull() },
+        category = categoryJson?.let { runCatching { json.decodeFromString(Category.serializer(), it) }.getOrNull() }
+    )
 }
