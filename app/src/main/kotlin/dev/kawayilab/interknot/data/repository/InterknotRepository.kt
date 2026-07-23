@@ -208,8 +208,8 @@ class InterknotRepository @Inject constructor(
 
     val searchHistory: Flow<List<String>> = preferences.searchHistory
 
-    suspend fun addSearchHistory(query: String) = preferences.addSearchHistory(query)
-    suspend fun clearSearchHistory() = preferences.clearSearchHistory()
+    suspend fun addSearchHistory(query: String) = runCatching { preferences.addSearchHistory(query) }
+    suspend fun clearSearchHistory() = runCatching { preferences.clearSearchHistory() }
 
     suspend fun getCategories(): Result<List<Category>> = api.getCategories()
 

@@ -81,17 +81,6 @@ fun SearchScreen(
     val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
     val hasMore by viewModel.hasMore.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
-    val gridState = rememberLazyStaggeredGridState()
-
-    LaunchedEffect(Unit) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
-            .distinctUntilChanged()
-            .collect { lastVisible ->
-                if (hasMore && !isLoadingMore && !isLoading && lastVisible >= results.size - 1) {
-                    viewModel.loadMore()
-                }
-            }
-    }
 
     val isSubmitted = results.isNotEmpty() || (isLoading && query.isNotBlank())
 
@@ -152,9 +141,9 @@ fun SearchScreen(
                     isLoadingMore = isLoadingMore,
                     hasMore = hasMore,
                     error = error,
-                    gridState = gridState,
                     onPostClick = onPostClick,
-                    onRetry = { viewModel.search() }
+                    onRetry = { viewModel.search() },
+                    onLoadMore = { viewModel.loadMore() }
                 )
                 query.isNotBlank() -> SuggestionsList(
                     suggestions = suggestions,
@@ -180,10 +169,22 @@ private fun SearchResults(
     isLoadingMore: Boolean,
     hasMore: Boolean,
     error: String?,
-    gridState: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState,
     onPostClick: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onLoadMore: () -> Unit
 ) {
+    val gridState = rememberLazyStaggeredGridState()
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .distinctUntilChanged()
+            .collect { lastVisible ->
+                if (hasMore && !isLoadingMore && !isLoading && lastVisible >= results.size - 1) {
+                    onLoadMore()
+                }
+            }
+    }
+
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
         state = gridState,
