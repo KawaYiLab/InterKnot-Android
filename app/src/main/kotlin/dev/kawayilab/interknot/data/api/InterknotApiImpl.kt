@@ -6,6 +6,8 @@ import dev.kawayilab.interknot.data.api.dto.ArticleListItemDto
 import dev.kawayilab.interknot.data.api.dto.ArticleRefDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
 import dev.kawayilab.interknot.data.api.dto.AuthorSearchItemDto
+import dev.kawayilab.interknot.data.api.dto.AvatarDto
+import dev.kawayilab.interknot.data.api.dto.AvatarListResponseDto
 import dev.kawayilab.interknot.data.api.dto.BioUpdateResultDto
 import dev.kawayilab.interknot.data.api.dto.BlockCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.BlockResultDto
@@ -16,11 +18,17 @@ import dev.kawayilab.interknot.data.api.dto.CommentListMetaDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
 import dev.kawayilab.interknot.data.api.dto.DataListDto
 import dev.kawayilab.interknot.data.api.dto.BenefitsDto
+import dev.kawayilab.interknot.data.api.dto.BusinessCardDto
+import dev.kawayilab.interknot.data.api.dto.BusinessCardListResponseDto
+import dev.kawayilab.interknot.data.api.dto.CheckInResultDto
+import dev.kawayilab.interknot.data.api.dto.CheckInStatusDto
+import dev.kawayilab.interknot.data.api.dto.DailyExpDto
 import dev.kawayilab.interknot.data.api.dto.DennyBalanceDto
 import dev.kawayilab.interknot.data.api.dto.ExamReviewDto
 import dev.kawayilab.interknot.data.api.dto.ExamStartResultDto
 import dev.kawayilab.interknot.data.api.dto.ExamStatusDto
 import dev.kawayilab.interknot.data.api.dto.ExamSubmitResultDto
+import dev.kawayilab.interknot.data.api.dto.ExpInfoDto
 import dev.kawayilab.interknot.data.api.dto.DennyGiveResponseDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteListItemDto
@@ -59,7 +67,13 @@ import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.model.Avatar
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BusinessCard
+import dev.kawayilab.interknot.model.CheckInResult
+import dev.kawayilab.interknot.model.CheckInStatus
+import dev.kawayilab.interknot.model.DailyExp
+import dev.kawayilab.interknot.model.ExpInfo
 import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
@@ -587,6 +601,65 @@ class InterknotApiImpl @Inject constructor(
             contentType(ContentType.Application.Json)
             setBody(mapOf("pinned" to pinned))
         }
+        response.toDomain()
+    }
+
+    override suspend fun getAvatars(): Result<Pair<List<Avatar>, String?>> = runCatching {
+        val response: AvatarListResponseDto = client.authGet("me/avatars")
+        response.data.map { it.toDomain() } to response.equippedAvatarDocumentId
+    }
+
+    override suspend fun equipAvatar(documentId: String?): Result<String?> = runCatching {
+        val response: AvatarListResponseDto = client.authPut("me/avatars/equip") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("documentId" to documentId))
+        }
+        response.equippedAvatarDocumentId
+    }
+
+    override suspend fun getBusinessCards(type: String?): Result<Pair<List<BusinessCard>, String?>> = runCatching {
+        val response: BusinessCardListResponseDto = client.authGet("me/business-cards") {
+            if (!type.isNullOrBlank()) parameter("type", type)
+        }
+        response.data.map { it.toDomain() } to (response.equippedCardDocumentId ?: response.equippedCard?.documentId)
+    }
+
+    override suspend fun equipBusinessCard(documentId: String?): Result<String?> = runCatching {
+        val response: BusinessCardListResponseDto = client.authPut("me/business-cards/equip") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("documentId" to documentId))
+        }
+        response.equippedCardDocumentId ?: response.equippedCard?.documentId
+    }
+
+    override suspend fun getBlockedAuthors(start: Int, limit: Int): Result<List<Author>> = runCatching {
+        val response: PagedListDto<AuthorSearchItemDto> = client.authGet("user-blocks/my-list") {
+            parameter("start", start)
+            parameter("limit", limit)
+        }
+        response.data.map { it.toDomain() }
+    }
+
+    override suspend fun getCheckInStatus(): Result<CheckInStatus> = runCatching {
+        val response: CheckInStatusDto = client.authGet("check-in/status")
+        response.toDomain()
+    }
+
+    override suspend fun checkIn(): Result<CheckInResult> = runCatching {
+        val response: CheckInResultDto = client.authPost("check-in") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getMyExp(): Result<ExpInfo> = runCatching {
+        val response: ExpInfoDto = client.authGet("me/exp")
+        response.toDomain()
+    }
+
+    override suspend fun getDailyExp(): Result<DailyExp> = runCatching {
+        val response: DailyExpDto = client.authGet("me/exp/daily")
         response.toDomain()
     }
 

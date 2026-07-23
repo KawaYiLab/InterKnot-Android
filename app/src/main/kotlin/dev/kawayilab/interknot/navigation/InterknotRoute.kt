@@ -28,6 +28,9 @@ data object Profile : InterknotRoute(requiresLogin = true)
 data class PostDetail(val postId: String) : InterknotRoute()
 
 @Serializable
+data class ProfileDetail(val documentId: String) : InterknotRoute()
+
+@Serializable
 data class Search(
     val query: String = "",
     val category: String? = null

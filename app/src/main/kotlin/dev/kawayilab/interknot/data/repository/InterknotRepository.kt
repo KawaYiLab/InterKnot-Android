@@ -8,12 +8,19 @@ import dev.kawayilab.interknot.data.local.cache.CachedSearchDao
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
+import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.model.Avatar
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
 import dev.kawayilab.interknot.model.Benefits
+import dev.kawayilab.interknot.model.BioUpdateResult
 import dev.kawayilab.interknot.model.ExamReview
+import dev.kawayilab.interknot.model.NameUpdateResult
+import dev.kawayilab.interknot.model.PinnedArticlesResponse
+import dev.kawayilab.interknot.model.PinnedUpdateResult
+import dev.kawayilab.interknot.model.VisibilityUpdateResult
 import dev.kawayilab.interknot.model.ExamStartResult
 import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.ExamSubmitResult
@@ -27,6 +34,12 @@ import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.TripleResult
 import dev.kawayilab.interknot.model.User
 import dev.kawayilab.interknot.model.BlockResult
+import dev.kawayilab.interknot.model.BusinessCard
+import dev.kawayilab.interknot.model.CheckInResult
+import dev.kawayilab.interknot.model.CheckInStatus
+import dev.kawayilab.interknot.model.DailyExp
+import dev.kawayilab.interknot.model.ExpInfo
+import dev.kawayilab.interknot.model.Profile
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -233,6 +246,31 @@ class InterknotRepository @Inject constructor(
     suspend fun markConversationRead(conversationId: String): Result<Int> = api.markConversationRead(conversationId)
 
     suspend fun getUnreadNotificationCount(): Result<Int> = api.getUnreadNotificationCount()
+
+    // Profile / Me
+    suspend fun getProfile(documentId: String): Result<Profile> = api.getProfile(documentId)
+    suspend fun getProfileArticles(documentId: String, start: Int = 0, limit: Int = 20): Result<ArticlePage> =
+        api.getProfileArticles(documentId, start, limit)
+    suspend fun getProfileComments(documentId: String, start: Int = 0, limit: Int = 20): Result<CommentPage> =
+        api.getProfileComments(documentId, start, limit)
+
+    suspend fun updateName(name: String): Result<NameUpdateResult> = api.updateName(name)
+    suspend fun updateBio(bio: String): Result<BioUpdateResult> = api.updateBio(bio)
+    suspend fun updateVisibility(profileHidden: Boolean): Result<VisibilityUpdateResult> = api.updateVisibility(profileHidden)
+    suspend fun getPinnedArticles(limit: Int = 50): Result<PinnedArticlesResponse> = api.getPinnedArticles(limit)
+    suspend fun updatePinnedArticles(pinned: List<String>?): Result<PinnedUpdateResult> = api.updatePinnedArticles(pinned)
+
+    suspend fun getAvatars(): Result<Pair<List<Avatar>, String?>> = api.getAvatars()
+    suspend fun equipAvatar(documentId: String?): Result<String?> = api.equipAvatar(documentId)
+    suspend fun getBusinessCards(type: String? = null): Result<Pair<List<BusinessCard>, String?>> = api.getBusinessCards(type)
+    suspend fun equipBusinessCard(documentId: String?): Result<String?> = api.equipBusinessCard(documentId)
+    suspend fun getBlockedAuthors(start: Int = 0, limit: Int = 20): Result<List<Author>> = api.getBlockedAuthors(start, limit)
+
+    // Check-in / Level
+    suspend fun getCheckInStatus(): Result<CheckInStatus> = api.getCheckInStatus()
+    suspend fun checkIn(): Result<CheckInResult> = api.checkIn()
+    suspend fun getMyExp(): Result<ExpInfo> = api.getMyExp()
+    suspend fun getDailyExp(): Result<DailyExp> = api.getDailyExp()
 
     suspend fun getDennyBalance(): Result<DennyBalance> = api.getDennyBalance()
 

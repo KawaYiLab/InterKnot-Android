@@ -94,16 +94,29 @@ fun InterknotNavHost(
                     }
                     entry<Profile> {
                         ProfileScreen(
-                            user = user,
+                            documentId = null,
                             onLogout = {
                                 scope.launch { repository.logout() }
-                            }
+                            },
+                            onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
+                            onNavigateToLevel = { backStack.navigate(Level) }
+                        )
+                    }
+                    entry<ProfileDetail> { key ->
+                        ProfileScreen(
+                            documentId = key.documentId,
+                            onLogout = { },
+                            onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
+                            onNavigateToLevel = { backStack.navigate(Level) }
                         )
                     }
                     entry<PostDetail> { key ->
                         PostDetailScreen(
                             postId = key.postId,
-                            onNavigateBack = { backStack.goBack() }
+                            onNavigateBack = { backStack.goBack() },
+                            onAuthorClick = { authorDocumentId ->
+                                backStack.navigate(ProfileDetail(authorDocumentId))
+                            }
                         )
                     }
                     entry<Search> { key ->
