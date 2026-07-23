@@ -1,16 +1,21 @@
 package dev.kawayilab.interknot.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class MeProfile(
     val user: User,
     val author: Author
 )
 
+@Serializable
 data class PinnedArticlesResponse(
     val pinned: List<String>?,
     val candidates: List<ArticleRef>,
     val max: Int
 )
 
+@Serializable
 data class ArticleRef(
     val documentId: String,
     val title: String? = null,
@@ -23,6 +28,7 @@ data class BioUpdateResult(val success: Boolean, val bio: String?)
 data class VisibilityUpdateResult(val success: Boolean, val profileHidden: Boolean)
 data class PinnedUpdateResult(val pinned: List<String>?)
 
+@Serializable
 data class Avatar(
     val documentId: String? = null,
     val name: String? = null,
@@ -32,6 +38,7 @@ data class Avatar(
     val isCustom: Boolean = false
 )
 
+@Serializable
 data class BusinessCard(
     val documentId: String? = null,
     val name: String? = null,

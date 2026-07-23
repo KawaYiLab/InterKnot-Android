@@ -4,11 +4,17 @@ import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.model.Benefits
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.ExamStartResult
+import dev.kawayilab.interknot.model.ExamStatus
+import dev.kawayilab.interknot.model.ExamSubmitResult
+import dev.kawayilab.interknot.model.ExamReview
 import dev.kawayilab.interknot.model.FavoriteRecord
 import dev.kawayilab.interknot.model.FavoriteResult
 import dev.kawayilab.interknot.model.FileInfo
@@ -22,6 +28,7 @@ import dev.kawayilab.interknot.model.NotificationPage
 import dev.kawayilab.interknot.model.PinnedArticlesResponse
 import dev.kawayilab.interknot.model.PinnedUpdateResult
 import dev.kawayilab.interknot.model.Profile
+import dev.kawayilab.interknot.model.ReportResult
 import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.SignedUploadResult
 import dev.kawayilab.interknot.model.TripleResult
@@ -55,7 +62,8 @@ interface InterknotApi {
         text: String,
         authorDocumentId: String,
         category: String? = null,
-        isAnonymous: Boolean = false
+        isAnonymous: Boolean = false,
+        coverDocumentIds: List<String>? = null
     ): Result<String>
 
     suspend fun updateArticle(
@@ -63,7 +71,8 @@ interface InterknotApi {
         title: String,
         text: String,
         category: String? = null,
-        isAnonymous: Boolean = false
+        isAnonymous: Boolean = false,
+        coverDocumentIds: List<String>? = null
     ): Result<Article>
 
     suspend fun publishArticle(documentId: String): Result<Unit>
@@ -121,6 +130,11 @@ interface InterknotApi {
     suspend fun checkFollow(authorDocumentIds: List<String>): Result<Map<String, Boolean>>
     suspend fun getFollowing(start: Int, limit: Int): Result<List<Author>>
 
+    // Report / Block
+    suspend fun createReport(targetType: String, targetId: String, reason: String, detail: String? = null): Result<ReportResult>
+    suspend fun toggleBlock(authorDocumentId: String): Result<BlockResult>
+    suspend fun checkBlock(authorDocumentIds: List<String>): Result<Map<String, Boolean>>
+
     // Profiles
     suspend fun getProfile(documentId: String): Result<Profile>
     suspend fun getProfileArticles(documentId: String, start: Int, limit: Int): Result<ArticlePage>
@@ -156,6 +170,15 @@ interface InterknotApi {
     // Denny
     suspend fun getDennyBalance(): Result<DennyBalance>
     suspend fun giveDenny(articleId: String, message: String? = null): Result<DennyGiveResult>
+
+    // Exam
+    suspend fun getExamStatus(): Result<ExamStatus>
+    suspend fun startExam(): Result<ExamStartResult>
+    suspend fun submitExam(attemptId: String, answers: Map<String, List<String>>): Result<ExamSubmitResult>
+    suspend fun getExamReview(attemptId: String? = null): Result<ExamReview>
+
+    // Benefits
+    suspend fun getBenefits(): Result<Benefits>
 
     // Direct upload
     suspend fun signUpload(

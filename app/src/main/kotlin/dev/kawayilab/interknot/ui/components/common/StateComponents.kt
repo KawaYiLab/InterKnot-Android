@@ -29,9 +29,9 @@ import dev.kawayilab.interknot.ui.theme.Spacing
 @Composable
 fun EmptyState(
     message: String,
+    modifier: Modifier = Modifier,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onAction: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier.fillMaxSize().padding(Spacing.xl),
@@ -67,8 +67,8 @@ fun EmptyState(
 @Composable
 fun ErrorState(
     message: String,
-    onRetry: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier.fillMaxSize().padding(Spacing.xl),

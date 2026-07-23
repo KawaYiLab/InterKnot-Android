@@ -7,13 +7,20 @@ import dev.kawayilab.interknot.data.api.dto.ArticleRefDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
 import dev.kawayilab.interknot.data.api.dto.AuthorSearchItemDto
 import dev.kawayilab.interknot.data.api.dto.BioUpdateResultDto
+import dev.kawayilab.interknot.data.api.dto.BlockCheckResultDto
+import dev.kawayilab.interknot.data.api.dto.BlockResultDto
 import dev.kawayilab.interknot.data.api.dto.CategoryDto
 import dev.kawayilab.interknot.data.api.dto.CodeResultDto
 import dev.kawayilab.interknot.data.api.dto.CommentDto
 import dev.kawayilab.interknot.data.api.dto.CommentListMetaDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
 import dev.kawayilab.interknot.data.api.dto.DataListDto
+import dev.kawayilab.interknot.data.api.dto.BenefitsDto
 import dev.kawayilab.interknot.data.api.dto.DennyBalanceDto
+import dev.kawayilab.interknot.data.api.dto.ExamReviewDto
+import dev.kawayilab.interknot.data.api.dto.ExamStartResultDto
+import dev.kawayilab.interknot.data.api.dto.ExamStatusDto
+import dev.kawayilab.interknot.data.api.dto.ExamSubmitResultDto
 import dev.kawayilab.interknot.data.api.dto.DennyGiveResponseDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteListItemDto
@@ -38,6 +45,7 @@ import dev.kawayilab.interknot.data.api.dto.ProfileDataDto
 import dev.kawayilab.interknot.data.api.dto.ProfileStatsDto
 import dev.kawayilab.interknot.data.api.dto.ResetPasswordResultDto
 import dev.kawayilab.interknot.data.api.dto.RenewTokenResponseDto
+import dev.kawayilab.interknot.data.api.dto.ReportResponseDto
 import dev.kawayilab.interknot.data.api.dto.SearchSuggestionDto
 import dev.kawayilab.interknot.data.api.dto.SignedUploadResultDto
 import dev.kawayilab.interknot.data.api.dto.SingleDto
@@ -52,10 +60,16 @@ import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.ExamReview
+import dev.kawayilab.interknot.model.ExamStartResult
+import dev.kawayilab.interknot.model.ExamStatus
+import dev.kawayilab.interknot.model.ExamSubmitResult
+import dev.kawayilab.interknot.model.Benefits
 import dev.kawayilab.interknot.model.FavoriteRecord
 import dev.kawayilab.interknot.model.FavoriteResult
 import dev.kawayilab.interknot.model.FileInfo
@@ -70,6 +84,7 @@ import dev.kawayilab.interknot.model.NotificationPage
 import dev.kawayilab.interknot.model.PinnedArticlesResponse
 import dev.kawayilab.interknot.model.PinnedUpdateResult
 import dev.kawayilab.interknot.model.Profile
+import dev.kawayilab.interknot.model.ReportResult
 import dev.kawayilab.interknot.model.SearchSuggestion
 import dev.kawayilab.interknot.model.SignedUploadResult
 import dev.kawayilab.interknot.model.TripleResult
@@ -197,7 +212,8 @@ class InterknotApiImpl @Inject constructor(
         text: String,
         authorDocumentId: String,
         category: String?,
-        isAnonymous: Boolean
+        isAnonymous: Boolean,
+        coverDocumentIds: List<String>?
     ): Result<String> = runCatching {
         val response: SingleDto<ArticleDetailDto> = client.authPost("articles") {
             parameter("status", "draft")
@@ -210,6 +226,9 @@ class InterknotApiImpl @Inject constructor(
                         put("author", mapOf("connect" to listOf(mapOf("documentId" to authorDocumentId))))
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
+                        if (!coverDocumentIds.isNullOrEmpty()) {
+                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                        }
                     }
                 )
             )
@@ -222,7 +241,8 @@ class InterknotApiImpl @Inject constructor(
         title: String,
         text: String,
         category: String?,
-        isAnonymous: Boolean
+        isAnonymous: Boolean,
+        coverDocumentIds: List<String>?
     ): Result<Article> = runCatching {
         val response: SingleDto<ArticleDetailDto> = client.authPut("articles/$documentId") {
             contentType(ContentType.Application.Json)
@@ -233,6 +253,9 @@ class InterknotApiImpl @Inject constructor(
                         put("text", text)
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
+                        if (!coverDocumentIds.isNullOrEmpty()) {
+                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                        }
                     }
                 )
             )
@@ -431,6 +454,41 @@ class InterknotApiImpl @Inject constructor(
         response.data.map { it.toDomain() }
     }
 
+    override suspend fun createReport(
+        targetType: String,
+        targetId: String,
+        reason: String,
+        detail: String?
+    ): Result<ReportResult> = runCatching {
+        val response: SingleDto<ReportResponseDto> = client.authPost("reports") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "targetType" to targetType,
+                    "targetId" to targetId,
+                    "reason" to reason,
+                    "detail" to (detail ?: "")
+                )
+            )
+        }
+        response.data.toDomain()
+    }
+
+    override suspend fun toggleBlock(authorDocumentId: String): Result<BlockResult> = runCatching {
+        val response: BlockResultDto = client.authPost("user-blocks/toggle") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("authorDocumentId" to authorDocumentId))
+        }
+        response.toDomain()
+    }
+
+    override suspend fun checkBlock(authorDocumentIds: List<String>): Result<Map<String, Boolean>> = runCatching {
+        val response: BlockCheckResultDto = client.authGet("user-blocks/check") {
+            parameter("authorIds", authorDocumentIds.joinToString(","))
+        }
+        response.data
+    }
+
     override suspend fun searchArticles(
         query: String,
         start: Int,
@@ -604,6 +662,42 @@ class InterknotApiImpl @Inject constructor(
                 if (!message.isNullOrBlank()) put("message", message)
             })
         }
+        response.toDomain()
+    }
+
+    override suspend fun getExamStatus(): Result<ExamStatus> = runCatching {
+        val response: ExamStatusDto = client.authGet("exam/status")
+        response.toDomain()
+    }
+
+    override suspend fun startExam(): Result<ExamStartResult> = runCatching {
+        val response: ExamStartResultDto = client.authPost("exam/start") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        response.toDomain()
+    }
+
+    override suspend fun submitExam(
+        attemptId: String,
+        answers: Map<String, List<String>>
+    ): Result<ExamSubmitResult> = runCatching {
+        val response: ExamSubmitResultDto = client.authPost("exam/submit") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("attemptId" to attemptId, "answers" to answers))
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getExamReview(attemptId: String?): Result<ExamReview> = runCatching {
+        val response: ExamReviewDto = client.authGet("exam/review") {
+            if (!attemptId.isNullOrBlank()) parameter("attemptId", attemptId)
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getBenefits(): Result<Benefits> = runCatching {
+        val response: BenefitsDto = client.authGet("benefits/me")
         response.toDomain()
     }
 

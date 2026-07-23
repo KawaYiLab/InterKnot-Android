@@ -1,5 +1,8 @@
 package dev.kawayilab.interknot.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Author(
     val documentId: String? = null,
     val username: String? = null,

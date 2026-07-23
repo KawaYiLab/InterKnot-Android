@@ -94,15 +94,14 @@ private fun CommentDto.toDomain(): Comment = Comment(
 fun CommentListResponseDto.toDomain(start: Int): CommentPage {
     val dataItems = data.map { it.toDomain() }
     val pinnedItem = pinned?.toDomain()
-    val items = if (pinnedItem != null && start == 0) listOf(pinnedItem) + dataItems else dataItems
     val pagination = meta.pagination
     return CommentPage(
-        items = items,
+        items = dataItems,
         pinned = pinnedItem,
         start = pagination.start,
         limit = pagination.limit,
         total = pagination.total,
-        hasMore = items.isNotEmpty() && (start + dataItems.size) < pagination.total
+        hasMore = dataItems.isNotEmpty() && (start + dataItems.size) < pagination.total
     )
 }
 

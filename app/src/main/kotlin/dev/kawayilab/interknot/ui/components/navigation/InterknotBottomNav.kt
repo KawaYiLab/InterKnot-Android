@@ -8,12 +8,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -28,10 +28,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import dev.kawayilab.interknot.navigation.Create
+import dev.kawayilab.interknot.navigation.Explore
 import dev.kawayilab.interknot.navigation.Home
 import dev.kawayilab.interknot.navigation.InterknotRoute
 import dev.kawayilab.interknot.navigation.Knock
-import dev.kawayilab.interknot.navigation.Level
 import dev.kawayilab.interknot.navigation.Profile
 
 private data class NavConfig(
@@ -46,7 +46,7 @@ private val navItems = listOf(
     NavConfig(Home, "推送", Icons.Filled.Home, Icons.Outlined.Home),
     NavConfig(Knock, "敲敲", Icons.Filled.Email, Icons.Outlined.Email),
     NavConfig(Create, "发布", Icons.Filled.Add, Icons.Outlined.Add, isCreate = true),
-    NavConfig(Level, "等级", Icons.Filled.Star, Icons.Outlined.Star),
+    NavConfig(Explore, "发现", Icons.Filled.Search, Icons.Outlined.Search),
     NavConfig(Profile, "我的", Icons.Filled.Person, Icons.Outlined.Person)
 )
 

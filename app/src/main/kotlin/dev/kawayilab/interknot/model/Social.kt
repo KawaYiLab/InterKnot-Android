@@ -42,3 +42,16 @@ data class CommentRef(
     val likesCount: Int = 0,
     val article: ArticleRef? = null
 )
+
+data class ReportResult(
+    val documentId: String? = null,
+    val targetType: String? = null,
+    val reason: String? = null,
+    val reportStatus: String? = null,
+    val createdAt: String? = null
+)
+
+data class BlockResult(
+    val blocked: Boolean,
+    val authorDocumentId: String
+)
