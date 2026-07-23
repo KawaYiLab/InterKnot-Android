@@ -62,11 +62,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
 fun SearchScreen(
-    initialQuery: String = "",
-    initialCategory: String? = null,
     onBack: () -> Unit,
     onPostClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    initialQuery: String = "",
+    initialCategory: String? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) {

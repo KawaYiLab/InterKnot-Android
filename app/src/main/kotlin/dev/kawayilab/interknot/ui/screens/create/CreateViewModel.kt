@@ -1,9 +1,12 @@
 package dev.kawayilab.interknot.ui.screens.create
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.core.graphics.scale
+import java.io.ByteArrayOutputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -104,7 +107,7 @@ class CreateViewModel @Inject constructor(
             if (status?.passed != true) {
                 _error.value = "需要通过入站考试后才能发布"
                 _isPublishing.value = false
-                onError(_error.value!!)
+                onError(_error.value ?: "未知错误")
                 return@launch
             }
 
@@ -113,7 +116,7 @@ class CreateViewModel @Inject constructor(
             if (t.isEmpty() || b.isEmpty()) {
                 _error.value = "标题和正文不能为空"
                 _isPublishing.value = false
-                onError(_error.value!!)
+                onError(_error.value ?: "未知错误")
                 return@launch
             }
 
@@ -121,7 +124,7 @@ class CreateViewModel @Inject constructor(
             if (b.length > maxBody) {
                 _error.value = "正文超过当前等级上限 ${maxBody} 字"
                 _isPublishing.value = false
-                onError(_error.value!!)
+                onError(_error.value ?: "未知错误")
                 return@launch
             }
 
@@ -130,7 +133,7 @@ class CreateViewModel @Inject constructor(
             if (pending.size > maxImages) {
                 _error.value = "图片超过当前等级上限 ${maxImages} 张"
                 _isPublishing.value = false
-                onError(_error.value!!)
+                onError(_error.value ?: "未知错误")
                 return@launch
             }
 
@@ -143,7 +146,7 @@ class CreateViewModel @Inject constructor(
                         _error.value = "图片上传失败"
                         _isPublishing.value = false
                         _selectedImages.value = pending.map { it.copy(isUploading = false) }
-                        onError(_error.value!!)
+                        onError(_error.value ?: "未知错误")
                         return@launch
                     }
                     file.documentId?.let { uploadedIds.add(it) }
@@ -163,7 +166,7 @@ class CreateViewModel @Inject constructor(
                 onSuccess()
             }.onFailure { err ->
                 _error.value = err.message ?: "发布失败"
-                onError(_error.value!!)
+                onError(_error.value ?: "未知错误")
             }
             _isPublishing.value = false
         }
@@ -172,13 +175,60 @@ class CreateViewModel @Inject constructor(
     private suspend fun uploadImage(uri: Uri): UploadedFile? {
         return runCatching {
             val resolver = context.contentResolver
-            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-            val filename = getFilename(uri) ?: "image.jpg"
-            val mimeType = resolver.getType(uri) ?: "image/jpeg"
-            uploadManager.upload(bytes, filename, mimeType, options.outWidth, options.outHeight).getOrThrow()
+            val originalBytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+            val compressed = compressImage(originalBytes, getFilename(uri) ?: "image.jpg")
+            uploadManager.upload(compressed.bytes, compressed.filename, "image/jpeg", compressed.width, compressed.height).getOrThrow()
         }.getOrNull()
+    }
+
+    private data class CompressedImage(
+        val bytes: ByteArray,
+        val width: Int,
+        val height: Int,
+        val filename: String
+    )
+
+    private fun compressImage(
+        bytes: ByteArray,
+        originalFilename: String
+    ): CompressedImage {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = false
+            inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, MAX_IMAGE_DIMENSION)
+        }
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+            ?: throw IllegalStateException("无法解码图片")
+
+        val scaled = if (bitmap.width > MAX_IMAGE_DIMENSION || bitmap.height > MAX_IMAGE_DIMENSION) {
+            val ratio = MAX_IMAGE_DIMENSION.toFloat() / maxOf(bitmap.width, bitmap.height)
+            val newWidth = (bitmap.width * ratio).toInt()
+            val newHeight = (bitmap.height * ratio).toInt()
+            bitmap.scale(newWidth, newHeight)
+        } else {
+            bitmap
+        }
+
+        val out = ByteArrayOutputStream()
+        scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+        val compressed = out.toByteArray()
+        scaled.recycle()
+        return CompressedImage(compressed, scaled.width, scaled.height, originalFilename.asJpg())
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int, maxDimension: Int): Int {
+        var inSampleSize = 1
+        while (width / inSampleSize > maxDimension || height / inSampleSize > maxDimension) {
+            inSampleSize *= 2
+        }
+        return inSampleSize
+    }
+
+    private fun String.asJpg(): String {
+        val dot = lastIndexOf('.')
+        return if (dot > 0) substring(0, dot) + ".jpg" else "$this.jpg"
     }
 
     private fun getFilename(uri: Uri): String? {
@@ -218,4 +268,9 @@ class CreateViewModel @Inject constructor(
         val uri: Uri,
         val isUploading: Boolean = false
     )
+
+    companion object {
+        private const val MAX_IMAGE_DIMENSION = 1920
+        private const val JPEG_QUALITY = 85
+    }
 }

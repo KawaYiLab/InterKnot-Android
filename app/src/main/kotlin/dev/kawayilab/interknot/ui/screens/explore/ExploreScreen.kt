@@ -178,29 +178,33 @@ private fun SearchBarPlaceholder(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        enabled = false,
-        readOnly = true,
-        placeholder = { Text("搜索感兴趣的内容") },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = null
+            .clickable(onClick = onClick)
+    ) {
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            readOnly = true,
+            placeholder = { Text("搜索感兴趣的内容") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        },
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    )
+    }
 }
 
 @Composable
