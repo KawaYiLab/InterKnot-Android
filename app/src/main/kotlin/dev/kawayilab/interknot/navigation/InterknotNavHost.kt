@@ -1,5 +1,13 @@
 package dev.kawayilab.interknot.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +29,7 @@ import androidx.navigation3.ui.NavDisplay
 import dev.kawayilab.interknot.data.repository.InterknotRepository
 import kotlinx.coroutines.launch
 import dev.kawayilab.interknot.ui.components.navigation.InterknotBottomNav
+import dev.kawayilab.interknot.ui.theme.Motion
 import dev.kawayilab.interknot.ui.screens.create.CreateScreen
 import dev.kawayilab.interknot.ui.screens.dm.DmDetailScreen
 import dev.kawayilab.interknot.ui.screens.dm.DmListScreen
@@ -86,7 +95,7 @@ fun InterknotNavHost(
                     )
                 }
                 entry<Exam> { ExamScreen(onNavigateBack = { backStack.goBack() }) }
-                entry<Level> { LevelScreen() }
+                entry<Level> { LevelScreen(onNavigateBack = { backStack.goBack() }) }
                 entry<Explore> {
                     ExploreScreen(
                         onSearchClick = { backStack.navigate(Search()) },
@@ -176,7 +185,36 @@ fun InterknotNavHost(
                 modifier = Modifier.fillMaxSize(),
                 onBack = { backStack.goBack() },
                 entryDecorators = entryDecorators,
-                entryProvider = entryProvider
+                entryProvider = entryProvider,
+                transitionSpec = {
+                    slideInHorizontally(
+                        initialOffsetX = { it / 8 },
+                        animationSpec = tween(Motion.PAGE_ENTER_MS)
+                    ) + fadeIn(
+                        initialAlpha = 0.85f,
+                        animationSpec = tween(Motion.PAGE_ENTER_MS)
+                    ) togetherWith ExitTransition.None
+                },
+                popTransitionSpec = {
+                    EnterTransition.None togetherWith
+                            slideOutHorizontally(
+                                targetOffsetX = { it / 8 },
+                                animationSpec = tween(Motion.PAGE_EXIT_MS)
+                            ) + fadeOut(
+                                targetAlpha = 0.85f,
+                                animationSpec = tween(Motion.PAGE_EXIT_MS)
+                            )
+                },
+                predictivePopTransitionSpec = {
+                    EnterTransition.None togetherWith
+                            slideOutHorizontally(
+                                targetOffsetX = { it / 8 },
+                                animationSpec = tween(Motion.PAGE_EXIT_MS)
+                            ) + fadeOut(
+                                targetAlpha = 0.85f,
+                                animationSpec = tween(Motion.PAGE_EXIT_MS)
+                            )
+                }
             )
         }
     }

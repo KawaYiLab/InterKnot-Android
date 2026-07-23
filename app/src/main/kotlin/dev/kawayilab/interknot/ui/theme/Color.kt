@@ -67,6 +67,14 @@ internal val ShimmerHighlightDark = Color(0xFF3A3A3A)
 internal val ShimmerBaseLight = Color(0xFFF0F0F0)
 internal val ShimmerHighlightLight = Color(0xFFFAFAFA)
 
+// Telegram-style message bubbles
+internal val MessageIncomingDark = Color(0xFF1E2C3A)
+internal val MessageOutgoingDark = Color(0xFF2B5278)
+internal val MessageIncomingLight = Color(0xFFF2F2F2)
+internal val MessageOutgoingLight = Color(0xFFD6EEFF)
+internal val MessageTextDark = White
+internal val MessageTextLight = InkText
+
 // ──────────────────────────────────────────────
 // Color schemes
 // ──────────────────────────────────────────────
@@ -160,7 +168,10 @@ data class InterknotExtendedColors(
     val online: Color,
     val knockBadge: Color,
     val shimmerBase: Color,
-    val shimmerHighlight: Color
+    val shimmerHighlight: Color,
+    val messageIncoming: Color,
+    val messageOutgoing: Color,
+    val messageText: Color
 )
 
 /** Dark-mode extended colors (also used as the CompositionLocal default). */
@@ -171,7 +182,10 @@ val ExtendedColorsDark = InterknotExtendedColors(
     online = OnlineGreenDark,
     knockBadge = KnockBadgeDark,
     shimmerBase = ShimmerBaseDark,
-    shimmerHighlight = ShimmerHighlightDark
+    shimmerHighlight = ShimmerHighlightDark,
+    messageIncoming = MessageIncomingDark,
+    messageOutgoing = MessageOutgoingDark,
+    messageText = MessageTextDark
 )
 
 /** Light-mode extended colors. */
@@ -182,7 +196,10 @@ val ExtendedColorsLight = InterknotExtendedColors(
     online = OnlineGreenLight,
     knockBadge = KnockBadgeLight,
     shimmerBase = ShimmerBaseLight,
-    shimmerHighlight = ShimmerHighlightLight
+    shimmerHighlight = ShimmerHighlightLight,
+    messageIncoming = MessageIncomingLight,
+    messageOutgoing = MessageOutgoingLight,
+    messageText = MessageTextLight
 )
 
 val LocalInterknotColors = staticCompositionLocalOf { ExtendedColorsDark }

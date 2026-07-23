@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.model.DmLastMessage
 import dev.kawayilab.interknot.ui.components.common.InterknotImage
 
 @Composable
@@ -113,48 +114,91 @@ private fun DmConversationItem(
 ) {
     val peer = conversation.peer
     val last = conversation.lastMessage
+    val hasUnread = conversation.unreadCount > 0
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         InterknotImage(
             model = peer?.avatar ?: conversation.avatar,
             contentDescription = "头像",
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .clip(CircleShape)
         )
 
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
                     text = peer?.name ?: conversation.title ?: "未知用户",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f)
                 )
-                if (conversation.unreadCount > 0) {
-                    Badge(modifier = Modifier.padding(start = 6.dp)) {
-                        Text(conversation.unreadCount.toString(), style = MaterialTheme.typography.labelSmall)
-                    }
+                conversation.lastMessageAt?.let { time ->
+                    Text(
+                        text = formatConversationTime(time),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (hasUnread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = last?.content ?: "",
+                text = last?.preview() ?: "",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (hasUnread) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (hasUnread) FontWeight.Medium else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        if (hasUnread) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Badge(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Text(
+                    text = if (conversation.unreadCount > 99) "99+" else conversation.unreadCount.toString(),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
+private fun DmLastMessage.preview(): String = when (kind) {
+    "image" -> "[图片]"
+    else -> content ?: ""
+}
+
+private fun formatConversationTime(iso: String?): String {
+    if (iso.isNullOrBlank()) return ""
+    return try {
+        val instant = java.time.Instant.parse(iso)
+        val zdt = instant.atZone(java.time.ZoneId.systemDefault())
+        val now = java.time.LocalDate.now()
+        val formatter = if (zdt.toLocalDate() == now) {
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm", java.util.Locale.getDefault())
+        } else {
+            java.time.format.DateTimeFormatter.ofPattern("MM-dd", java.util.Locale.getDefault())
+        }
+        zdt.format(formatter)
+    } catch (_: Exception) {
+        iso
     }
 }

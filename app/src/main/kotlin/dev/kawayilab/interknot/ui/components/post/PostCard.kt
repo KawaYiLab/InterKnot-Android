@@ -68,10 +68,15 @@ fun PostCard(
 
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 0.dp, bottomStart = 24.dp),
+        shape = RoundedCornerShape(16.dp),
         interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp,
+            pressedElevation = 2.dp,
+            hoveredElevation = 2.dp
         ),
         modifier = modifier.scale(scale)
     ) {
