@@ -17,15 +17,26 @@ import dev.kawayilab.interknot.data.local.cache.CachedSearchDao
 import dev.kawayilab.interknot.data.local.cache.InterknotDatabase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.WebSockets
+import android.util.Log
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -45,6 +56,30 @@ object AppModule {
             json(json)
         }
         install(WebSockets)
+        if (BuildConfig.DEBUG) {
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        Log.d("Ktor", message)
+                    }
+                }
+                level = LogLevel.ALL
+            }
+        }
+        expectSuccess = true
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { exception, _ ->
+                val clientException = exception as? ClientRequestException ?: return@handleResponseExceptionWithRequest
+                val response = clientException.response
+                val bodyText = runCatching { response.bodyAsText() }.getOrNull() ?: ""
+                val message = runCatching {
+                    (json.parseToJsonElement(bodyText) as? JsonObject)
+                        ?.get("error")?.jsonObject
+                        ?.get("message")?.jsonPrimitive?.contentOrNull
+                }.getOrNull()
+                throw Exception(message ?: response.status.description)
+            }
+        }
         defaultRequest {
             val base = Url(BuildConfig.API_BASE_URL)
             url {

@@ -88,28 +88,22 @@ class InterknotRepository @Inject constructor(
         return storedUser
     }
 
-    suspend fun login(identifier: String, password: String): Result<AuthResult> {
-        return api.login(identifier, password).onSuccess { result ->
-            preferences.saveSession(result.token, result.user)
-            _user.value = result.user
-            refreshSelfUser()
-        }
+    suspend fun login(identifier: String, password: String): Result<AuthResult> = runCatching {
+        val result = api.login(identifier, password).getOrThrow()
+        preferences.saveSession(result.token, result.user)
+        val user = api.getCurrentUser().getOrThrow()
+        preferences.saveSession(result.token, user)
+        _user.value = user
+        AuthResult(result.token, user)
     }
 
-    suspend fun register(email: String, code: String, password: String): Result<AuthResult> {
-        return api.register(email, code, password).onSuccess { result ->
-            preferences.saveSession(result.token, result.user)
-            _user.value = result.user
-            refreshSelfUser()
-        }
-    }
-
-    private suspend fun refreshSelfUser() {
-        api.getCurrentUser().onSuccess { user ->
-            val token = TokenManager.token ?: preferences.token.first() ?: return
-            preferences.saveSession(token, user)
-            _user.value = user
-        }
+    suspend fun register(email: String, code: String, password: String): Result<AuthResult> = runCatching {
+        val result = api.register(email, code, password).getOrThrow()
+        preferences.saveSession(result.token, result.user)
+        val user = api.getCurrentUser().getOrThrow()
+        preferences.saveSession(result.token, user)
+        _user.value = user
+        AuthResult(result.token, user)
     }
 
     suspend fun sendRegisterCode(email: String): Result<Pair<Boolean, Int>> {

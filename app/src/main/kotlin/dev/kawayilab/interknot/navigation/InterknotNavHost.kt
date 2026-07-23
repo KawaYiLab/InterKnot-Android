@@ -14,7 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -69,6 +69,103 @@ fun InterknotNavHost(
             }
         }
     ) { innerPadding ->
+        val saveableStateHolder = rememberSaveableStateHolderNavEntryDecorator<InterknotRoute>()
+        val entryDecorators = remember(saveableStateHolder) {
+            listOf<NavEntryDecorator<InterknotRoute>>(saveableStateHolder)
+        }
+        val entryProvider = remember(backStack, scope, repository) {
+            entryProvider {
+                entry<Home> {
+                    HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
+                }
+                entry<Knock> { KnockScreen() }
+                entry<Create> {
+                    CreateScreen(
+                        onNavigateBack = { backStack.goBack() },
+                        onNavigateToExam = { backStack.navigate(Exam) }
+                    )
+                }
+                entry<Exam> { ExamScreen(onNavigateBack = { backStack.goBack() }) }
+                entry<Level> { LevelScreen() }
+                entry<Explore> {
+                    ExploreScreen(
+                        onSearchClick = { backStack.navigate(Search()) },
+                        onCategoryClick = { category ->
+                            backStack.navigate(Search(category = category?.slug))
+                        },
+                        onPostClick = { id -> backStack.navigate(PostDetail(id)) }
+                    )
+                }
+                entry<Profile> {
+                    ProfileScreen(
+                        documentId = null,
+                        onLogout = {
+                            scope.launch { repository.logout() }
+                        },
+                        onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
+                        onNavigateToLevel = { backStack.navigate(Level) },
+                        onNavigateToDm = { userId, name ->
+                            backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
+                        },
+                        onNavigateToDmList = { backStack.navigate(DmList) },
+                        onNavigateToSettings = { backStack.navigate(Settings) }
+                    )
+                }
+                entry<ProfileDetail> { key ->
+                    ProfileScreen(
+                        documentId = key.documentId,
+                        onLogout = { },
+                        onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
+                        onNavigateToLevel = { backStack.navigate(Level) },
+                        onNavigateToDm = { userId, name ->
+                            backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
+                        },
+                        onNavigateToDmList = { },
+                        onNavigateToSettings = { }
+                    )
+                }
+                entry<Settings> {
+                    SettingsScreen(onNavigateBack = { backStack.goBack() })
+                }
+                entry<PostDetail> { key ->
+                    PostDetailScreen(
+                        postId = key.postId,
+                        onNavigateBack = { backStack.goBack() },
+                        onAuthorClick = { authorDocumentId ->
+                            backStack.navigate(ProfileDetail(authorDocumentId))
+                        }
+                    )
+                }
+                entry<Search> { key ->
+                    SearchScreen(
+                        initialQuery = key.query,
+                        initialCategory = key.category,
+                        onBack = { backStack.goBack() },
+                        onPostClick = { id -> backStack.navigate(PostDetail(id)) }
+                    )
+                }
+                entry<DmList> {
+                    DmListScreen(
+                        onNavigateBack = { backStack.goBack() },
+                        onConversationClick = { conversation ->
+                            backStack.navigate(DmDetail(conversation.documentId))
+                        }
+                    )
+                }
+                entry<DmDetail> { key ->
+                    DmDetailScreen(
+                        conversationId = key.conversationId,
+                        targetUserId = key.targetUserId,
+                        targetName = key.targetName,
+                        onNavigateBack = { backStack.goBack() }
+                    )
+                }
+                entry<Login> {
+                    LoginScreen(onLoginSuccess = { backStack.login() })
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,100 +175,8 @@ fun InterknotNavHost(
                 backStack = backStack.backStack,
                 modifier = Modifier.fillMaxSize(),
                 onBack = { backStack.goBack() },
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator()
-                ),
-                entryProvider = entryProvider {
-                    entry<Home> {
-                        HomeScreen(onPostClick = { id -> backStack.navigate(PostDetail(id)) })
-                    }
-                    entry<Knock> { KnockScreen() }
-                    entry<Create> {
-                        CreateScreen(
-                            onNavigateBack = { backStack.goBack() },
-                            onNavigateToExam = { backStack.navigate(Exam) }
-                        )
-                    }
-                    entry<Exam> { ExamScreen(onNavigateBack = { backStack.goBack() }) }
-                    entry<Level> { LevelScreen() }
-                    entry<Explore> {
-                        ExploreScreen(
-                            onSearchClick = { backStack.navigate(Search()) },
-                            onCategoryClick = { category ->
-                                backStack.navigate(Search(category = category?.slug))
-                            },
-                            onPostClick = { id -> backStack.navigate(PostDetail(id)) }
-                        )
-                    }
-                    entry<Profile> {
-                        ProfileScreen(
-                            documentId = null,
-                            onLogout = {
-                                scope.launch { repository.logout() }
-                            },
-                            onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
-                            onNavigateToLevel = { backStack.navigate(Level) },
-                            onNavigateToDm = { userId, name ->
-                                backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
-                            },
-                            onNavigateToDmList = { backStack.navigate(DmList) },
-                            onNavigateToSettings = { backStack.navigate(Settings) }
-                        )
-                    }
-                    entry<ProfileDetail> { key ->
-                        ProfileScreen(
-                            documentId = key.documentId,
-                            onLogout = { },
-                            onNavigateToPost = { id -> backStack.navigate(PostDetail(id)) },
-                            onNavigateToLevel = { backStack.navigate(Level) },
-                            onNavigateToDm = { userId, name ->
-                                backStack.navigate(DmDetail(targetUserId = userId, targetName = name))
-                            },
-                            onNavigateToDmList = { },
-                            onNavigateToSettings = { }
-                        )
-                    }
-                    entry<Settings> {
-                        SettingsScreen(onNavigateBack = { backStack.goBack() })
-                    }
-                    entry<PostDetail> { key ->
-                        PostDetailScreen(
-                            postId = key.postId,
-                            onNavigateBack = { backStack.goBack() },
-                            onAuthorClick = { authorDocumentId ->
-                                backStack.navigate(ProfileDetail(authorDocumentId))
-                            }
-                        )
-                    }
-                    entry<Search> { key ->
-                        SearchScreen(
-                            initialQuery = key.query,
-                            initialCategory = key.category,
-                            onBack = { backStack.goBack() },
-                            onPostClick = { id -> backStack.navigate(PostDetail(id)) }
-                        )
-                    }
-                    entry<DmList> {
-                        DmListScreen(
-                            onNavigateBack = { backStack.goBack() },
-                            onConversationClick = { conversation ->
-                                backStack.navigate(DmDetail(conversation.documentId))
-                            }
-                        )
-                    }
-                    entry<DmDetail> { key ->
-                        DmDetailScreen(
-                            conversationId = key.conversationId,
-                            targetUserId = key.targetUserId,
-                            targetName = key.targetName,
-                            onNavigateBack = { backStack.goBack() }
-                        )
-                    }
-                    entry<Login> {
-                        LoginScreen(onLoginSuccess = { backStack.login() })
-                    }
-                }
+                entryDecorators = entryDecorators,
+                entryProvider = entryProvider
             )
         }
     }

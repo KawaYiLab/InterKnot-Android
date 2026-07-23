@@ -130,7 +130,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import javax.inject.Inject
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.*
 
 class InterknotApiImpl @Inject constructor(
     private val client: HttpClient
@@ -245,18 +245,24 @@ class InterknotApiImpl @Inject constructor(
             parameter("status", "draft")
             contentType(ContentType.Application.Json)
             setBody(
-                mapOf(
-                    "data" to buildMap {
+                buildJsonObject {
+                    putJsonObject("data") {
                         put("title", title)
                         put("text", text)
-                        put("author", mapOf("connect" to listOf(mapOf("documentId" to authorDocumentId))))
+                        putJsonObject("author") {
+                            putJsonArray("connect") {
+                                addJsonObject { put("documentId", authorDocumentId) }
+                            }
+                        }
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
                         if (!coverDocumentIds.isNullOrEmpty()) {
-                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                            putJsonArray("cover") {
+                                coverDocumentIds.forEach { addJsonObject { put("documentId", it) } }
+                            }
                         }
                     }
-                )
+                }
             )
         }
         response.data.documentId
@@ -273,17 +279,19 @@ class InterknotApiImpl @Inject constructor(
         val response: SingleDto<ArticleDetailDto> = client.authPut("articles/$documentId") {
             contentType(ContentType.Application.Json)
             setBody(
-                mapOf(
-                    "data" to buildMap {
+                buildJsonObject {
+                    putJsonObject("data") {
                         put("title", title)
                         put("text", text)
                         if (!category.isNullOrBlank()) put("category", category)
                         if (isAnonymous) put("isAnonymous", true)
                         if (!coverDocumentIds.isNullOrEmpty()) {
-                            put("cover", coverDocumentIds.map { mapOf("documentId" to it) })
+                            putJsonArray("cover") {
+                                coverDocumentIds.forEach { addJsonObject { put("documentId", it) } }
+                            }
                         }
                     }
-                )
+                }
             )
         }
         response.data.toDomain()
@@ -330,10 +338,10 @@ class InterknotApiImpl @Inject constructor(
         client.authPost<JsonObject>("article-reads/batch") {
             contentType(ContentType.Application.Json)
             setBody(
-                mapOf(
-                    "articleDocumentIds" to articleDocumentIds,
-                    "markAsRead" to true
-                )
+                buildJsonObject {
+                    putJsonArray("articleDocumentIds") { articleDocumentIds.forEach { add(it) } }
+                    put("markAsRead", true)
+                }
             )
         }
         Unit
@@ -370,15 +378,15 @@ class InterknotApiImpl @Inject constructor(
         client.authPost<Unit>("comments") {
             contentType(ContentType.Application.Json)
             setBody(
-                mapOf(
-                    "data" to buildMap {
+                buildJsonObject {
+                    putJsonObject("data") {
                         put("article", articleDocumentId)
                         put("content", content)
                         put("author", authorDocumentId)
                         if (!parentDocumentId.isNullOrBlank()) put("parent", parentDocumentId)
                         if (isAnonymous) put("isAnonymous", true)
                     }
-                )
+                }
             )
         }
         Unit
@@ -769,7 +777,14 @@ class InterknotApiImpl @Inject constructor(
     ): Result<ExamSubmitResult> = runCatching {
         val response: ExamSubmitResultDto = client.authPost("exam/submit") {
             contentType(ContentType.Application.Json)
-            setBody(mapOf("attemptId" to attemptId, "answers" to answers))
+            setBody(
+                buildJsonObject {
+                    put("attemptId", attemptId)
+                    putJsonObject("answers") {
+                        answers.forEach { (key, value) -> putJsonArray(key) { value.forEach { add(it) } } }
+                    }
+                }
+            )
         }
         response.toDomain()
     }
@@ -798,7 +813,7 @@ class InterknotApiImpl @Inject constructor(
         val response: SingleDto<SignedUploadResultDto> = client.authPost("direct-upload/sign") {
             contentType(ContentType.Application.Json)
             setBody(
-                buildMap {
+                buildJsonObject {
                     put("filename", filename)
                     put("mimeType", mimeType)
                     put("size", size)
@@ -806,14 +821,11 @@ class InterknotApiImpl @Inject constructor(
                     if (width != null) put("width", width)
                     if (height != null) put("height", height)
                     if (fileInfo != null) {
-                        put(
-                            "fileInfo",
-                            mapOf(
-                                "name" to fileInfo.name,
-                                "alternativeText" to fileInfo.alternativeText,
-                                "caption" to fileInfo.caption
-                            )
-                        )
+                        putJsonObject("fileInfo") {
+                            put("name", fileInfo.name)
+                            put("alternativeText", fileInfo.alternativeText)
+                            put("caption", fileInfo.caption)
+                        }
                     }
                 }
             )
@@ -829,7 +841,7 @@ class InterknotApiImpl @Inject constructor(
         val response: SingleDto<UploadedFileDto> = client.authPost("direct-upload/complete") {
             contentType(ContentType.Application.Json)
             setBody(
-                buildMap {
+                buildJsonObject {
                     put("uploadToken", uploadToken)
                     if (width != null) put("width", width)
                     if (height != null) put("height", height)
