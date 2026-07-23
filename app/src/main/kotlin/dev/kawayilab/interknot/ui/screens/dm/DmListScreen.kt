@@ -36,11 +36,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.model.DmConversation
 import dev.kawayilab.interknot.model.DmLastMessage
 import dev.kawayilab.interknot.ui.components.common.InterknotImage
@@ -115,6 +117,7 @@ private fun DmConversationItem(
     val peer = conversation.peer
     val last = conversation.lastMessage
     val hasUnread = conversation.unreadCount > 0
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
 
     Row(
         modifier = modifier
@@ -126,6 +129,9 @@ private fun DmConversationItem(
         InterknotImage(
             model = peer?.avatar ?: conversation.avatar,
             contentDescription = "头像",
+            placeholderPainter = defaultAvatar,
+            errorPainter = defaultAvatar,
+            fallbackPainter = defaultAvatar,
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)

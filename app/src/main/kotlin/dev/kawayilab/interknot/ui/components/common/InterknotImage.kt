@@ -5,7 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -19,8 +21,11 @@ fun InterknotImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     nsfwStatus: String? = null,
-    placeholderColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceVariant,
-    errorColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.errorContainer
+    placeholderColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    errorColor: Color = MaterialTheme.colorScheme.errorContainer,
+    placeholderPainter: Painter? = null,
+    errorPainter: Painter? = null,
+    fallbackPainter: Painter? = null
 ) {
     val context = LocalContext.current
     val isNsfw = nsfwStatus != null &&
@@ -38,9 +43,9 @@ fun InterknotImage(
         modifier = modifier
             .background(placeholderColor)
             .then(blurModifier),
-        placeholder = ColorPainter(placeholderColor),
-        error = ColorPainter(errorColor),
-        fallback = ColorPainter(placeholderColor),
+        placeholder = placeholderPainter ?: ColorPainter(placeholderColor),
+        error = errorPainter ?: ColorPainter(errorColor),
+        fallback = fallbackPainter ?: placeholderPainter ?: ColorPainter(placeholderColor),
         contentScale = contentScale
     )
 }

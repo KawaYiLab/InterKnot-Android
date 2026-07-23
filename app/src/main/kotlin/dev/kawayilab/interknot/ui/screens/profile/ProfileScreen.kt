@@ -68,11 +68,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.ui.components.common.InterknotImage
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticleRef
@@ -476,28 +478,18 @@ private fun StatChip(label: String, value: Int) {
 @Composable
 private fun AvatarImage(author: Author?, modifier: Modifier = Modifier) {
     val avatarUrl = author?.equippedAvatar?.image?.url ?: author?.avatarUrl
-    Box(
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
+    InterknotImage(
+        model = avatarUrl,
+        contentDescription = "头像",
+        contentScale = ContentScale.Crop,
+        placeholderPainter = defaultAvatar,
+        errorPainter = defaultAvatar,
+        fallbackPainter = defaultAvatar,
         modifier = modifier
             .clip(CircleShape)
-            .aspectRatio(1f),
-        contentAlignment = Alignment.Center
-    ) {
-        if (avatarUrl != null) {
-            InterknotImage(
-                model = avatarUrl,
-                contentDescription = "头像",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(40.dp)
-            )
-        }
-    }
+            .aspectRatio(1f)
+    )
 }
 
 @Composable

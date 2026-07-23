@@ -38,7 +38,6 @@ import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Block
@@ -83,15 +82,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImagePainter
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.ui.components.common.InterknotImage
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
@@ -418,6 +416,7 @@ private fun AuthorHeader(
     val isOwner = article.isOwner
     val isBlocked = author?.isBlockedByMe == true
     val isFollowing = author?.isFollowing == true
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
 
     Row(
         modifier = modifier.clickable(
@@ -427,30 +426,17 @@ private fun AuthorHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Box(
+        InterknotImage(
+            model = author?.avatarUrl,
+            contentDescription = author?.name,
+            contentScale = ContentScale.Crop,
+            placeholderPainter = defaultAvatar,
+            errorPainter = defaultAvatar,
+            fallbackPainter = defaultAvatar,
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarUrl = author?.avatarUrl
-            if (avatarUrl != null) {
-                SubcomposeAsyncImage(
-                    model = avatarUrl,
-                    contentDescription = author?.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    when (val state = painter.state) {
-                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                        else -> DefaultAvatarIcon(20)
-                    }
-                }
-            } else {
-                DefaultAvatarIcon(20)
-            }
-        }
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -562,12 +548,12 @@ private fun StatText(text: String) {
 
 @Composable
 private fun CoverPager(article: Article) {
-    val images = remember(article) {
+    val defaultCover = painterResource(R.drawable.default_cover)
+    val images = remember(article.documentId) {
         article.coverImages.map { it.url }.ifEmpty {
             article.coverUrl?.let { listOf(it) } ?: emptyList()
         }
     }
-    if (images.isEmpty()) return
 
     val firstImage = article.coverImages.firstOrNull()
     val aspectRatio = if (firstImage?.width != null && firstImage.height != null && firstImage.height > 0) {
@@ -578,8 +564,10 @@ private fun CoverPager(article: Article) {
         0.75f
     }
 
-    if (images.size == 1) {
-        CoverImage(images[0], article.title, aspectRatio, article.coverNsfwStatus)
+    if (images.isEmpty()) {
+        CoverImage(null, article.title, aspectRatio, article.coverNsfwStatus, defaultCover)
+    } else if (images.size == 1) {
+        CoverImage(images[0], article.title, aspectRatio, article.coverNsfwStatus, defaultCover)
     } else {
         val pagerState = rememberPagerState(pageCount = { images.size })
         Box(
@@ -591,7 +579,7 @@ private fun CoverPager(article: Article) {
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                CoverImage(images[page], article.title, aspectRatio, article.coverNsfwStatus)
+                CoverImage(images[page], article.title, aspectRatio, article.coverNsfwStatus, defaultCover)
             }
 
             Surface(
@@ -613,7 +601,13 @@ private fun CoverPager(article: Article) {
 }
 
 @Composable
-private fun CoverImage(url: String?, contentDescription: String?, aspectRatio: Float, nsfwStatus: String?) {
+private fun CoverImage(
+    url: Any?,
+    contentDescription: String?,
+    aspectRatio: Float,
+    nsfwStatus: String?,
+    defaultCover: androidx.compose.ui.graphics.painter.Painter
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -626,6 +620,9 @@ private fun CoverImage(url: String?, contentDescription: String?, aspectRatio: F
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
             nsfwStatus = nsfwStatus,
+            placeholderPainter = defaultCover,
+            errorPainter = defaultCover,
+            fallbackPainter = defaultCover,
             modifier = Modifier.fillMaxSize()
         )
         if (nsfwStatus != null && nsfwStatus != "safe" && nsfwStatus != "approved" && nsfwStatus.isNotBlank()) {
@@ -841,6 +838,8 @@ private fun CommentItem(
         label = "commentLike"
     )
 
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -848,30 +847,17 @@ private fun CommentItem(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
+            InterknotImage(
+                model = comment.author?.avatarUrl,
+                contentDescription = comment.author?.name,
+                contentScale = ContentScale.Crop,
+                placeholderPainter = defaultAvatar,
+                errorPainter = defaultAvatar,
+                fallbackPainter = defaultAvatar,
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                val avatarUrl = comment.author?.avatarUrl
-                if (avatarUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = avatarUrl,
-                        contentDescription = comment.author?.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        when (val state = painter.state) {
-                            is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                            else -> DefaultAvatarIcon(16)
-                        }
-                    }
-                } else {
-                    DefaultAvatarIcon(16)
-                }
-            }
+            )
             Spacer(modifier = Modifier.width(Spacing.sm))
 
             Column(modifier = Modifier.weight(1f)) {
@@ -1096,16 +1082,6 @@ private fun ReportDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
         }
-    )
-}
-
-@Composable
-private fun DefaultAvatarIcon(size: Int) {
-    Icon(
-        imageVector = Icons.Filled.Person,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-        modifier = Modifier.size(size.dp)
     )
 }
 

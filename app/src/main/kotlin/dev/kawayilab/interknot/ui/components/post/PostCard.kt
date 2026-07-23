@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
@@ -34,15 +33,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImagePainter
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.Author
-import dev.kawayilab.interknot.ui.components.common.ShimmerBox
+import dev.kawayilab.interknot.ui.components.common.InterknotImage
 import dev.kawayilab.interknot.ui.theme.InterknotTheme
 import dev.kawayilab.interknot.ui.theme.LocalInterknotColors
 import dev.kawayilab.interknot.ui.theme.Motion
@@ -63,6 +61,8 @@ fun PostCard(
     )
     val extendedColors = LocalInterknotColors.current
     val titleColor = if (article.isRead) extendedColors.titleRead else extendedColors.titleUnread
+    val defaultCover = painterResource(R.drawable.default_cover)
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
 
     val imageUrl = article.coverUrl ?: article.coverImages.firstOrNull()?.url
 
@@ -81,9 +81,11 @@ fun PostCard(
         modifier = modifier.scale(scale)
     ) {
         Column {
-            if (imageUrl != null) {
-                CoverSection(article = article, imageUrl = imageUrl)
-            }
+            CoverSection(
+                article = article,
+                imageUrl = imageUrl,
+                defaultCover = defaultCover
+            )
 
             Text(
                 text = buildTitle(article),
@@ -94,17 +96,24 @@ fun PostCard(
                 modifier = Modifier.padding(
                     start = Spacing.sm,
                     end = Spacing.sm,
-                    top = if (imageUrl != null) Spacing.sm else Spacing.md
+                    top = Spacing.sm
                 )
             )
 
-            PostMeta(article = article)
+            PostMeta(
+                article = article,
+                defaultAvatar = defaultAvatar
+            )
         }
     }
 }
 
 @Composable
-private fun CoverSection(article: Article, imageUrl: String) {
+private fun CoverSection(
+    article: Article,
+    imageUrl: String?,
+    defaultCover: androidx.compose.ui.graphics.painter.Painter
+) {
     val aspectRatio = if (article.coverWidth != null && article.coverHeight != null && article.coverHeight > 0) {
         article.coverWidth.toFloat() / article.coverHeight.toFloat()
     } else {
@@ -117,17 +126,16 @@ private fun CoverSection(article: Article, imageUrl: String) {
             .aspectRatio(aspectRatio)
             .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        SubcomposeAsyncImage(
+        InterknotImage(
             model = imageUrl,
             contentDescription = article.title,
             contentScale = ContentScale.Crop,
+            nsfwStatus = article.coverNsfwStatus,
+            placeholderPainter = defaultCover,
+            errorPainter = defaultCover,
+            fallbackPainter = defaultCover,
             modifier = Modifier.fillMaxSize()
-        ) {
-            when (val state = painter.state) {
-                is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                else -> CoverShimmer()
-            }
-        }
+        )
 
         if (article.coverNsfwStatus != null && article.coverNsfwStatus != "safe" && article.coverNsfwStatus != "approved") {
             Box(
@@ -174,12 +182,10 @@ private fun ViewsOverlay(views: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CoverShimmer() {
-    ShimmerBox(modifier = Modifier.fillMaxSize())
-}
-
-@Composable
-private fun PostMeta(article: Article) {
+private fun PostMeta(
+    article: Article,
+    defaultAvatar: androidx.compose.ui.graphics.painter.Painter
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -187,30 +193,17 @@ private fun PostMeta(article: Article) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        Box(
+        InterknotImage(
+            model = article.author?.avatarUrl,
+            contentDescription = article.author?.name ?: "默认头像",
+            contentScale = ContentScale.Crop,
+            placeholderPainter = defaultAvatar,
+            errorPainter = defaultAvatar,
+            fallbackPainter = defaultAvatar,
             modifier = Modifier
                 .size(20.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarUrl = article.author?.avatarUrl
-            if (avatarUrl != null) {
-                SubcomposeAsyncImage(
-                    model = avatarUrl,
-                    contentDescription = article.author?.name ?: "默认头像",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    when (val state = painter.state) {
-                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                        else -> DefaultAvatarIcon()
-                    }
-                }
-            } else {
-                DefaultAvatarIcon()
-            }
-        }
+        )
 
         Text(
             text = article.author?.name ?: if (article.isAnonymous) "匿名" else "未知",
@@ -225,16 +218,6 @@ private fun PostMeta(article: Article) {
             LikeChip(count = article.likesCount)
         }
     }
-}
-
-@Composable
-private fun DefaultAvatarIcon() {
-    Icon(
-        imageVector = Icons.Filled.Person,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-        modifier = Modifier.size(14.dp)
-    )
 }
 
 @Composable

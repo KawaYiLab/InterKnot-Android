@@ -62,11 +62,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.kawayilab.interknot.R
 import dev.kawayilab.interknot.model.DmConversationDetail
 import dev.kawayilab.interknot.model.DmMessage
 import dev.kawayilab.interknot.ui.components.common.InterknotImage
@@ -106,6 +108,7 @@ fun DmDetailScreen(
     val peer = conversation?.members?.find { !it.isSelf }
     val title = peer?.name ?: conversation?.title ?: targetName ?: "会话"
     val avatarUrl = conversation?.avatar ?: peer?.avatar
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -117,6 +120,9 @@ fun DmDetailScreen(
                         InterknotImage(
                             model = avatarUrl,
                             contentDescription = "头像",
+                            placeholderPainter = defaultAvatar,
+                            errorPainter = defaultAvatar,
+                            fallbackPainter = defaultAvatar,
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
@@ -244,6 +250,7 @@ private fun DmMessageBubble(
     } else {
         extendedColors.messageText
     }
+    val defaultAvatar = painterResource(R.drawable.default_avatar)
     val bubbleShape = RoundedCornerShape(
         topStart = 18.dp,
         topEnd = 18.dp,
@@ -264,6 +271,9 @@ private fun DmMessageBubble(
             InterknotImage(
                 model = message.sender?.avatar,
                 contentDescription = "头像",
+                placeholderPainter = defaultAvatar,
+                errorPainter = defaultAvatar,
+                fallbackPainter = defaultAvatar,
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
