@@ -17,6 +17,11 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.model.DmConversationDetail
+import dev.kawayilab.interknot.model.DmMessage
+import dev.kawayilab.interknot.model.DmMessagePage
+import dev.kawayilab.interknot.model.DmSocketTicket
 import dev.kawayilab.interknot.model.ExamStartResult
 import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.ExamSubmitResult
@@ -184,6 +189,28 @@ interface InterknotApi {
 
     suspend fun markConversationRead(conversationId: String): Result<Int>
     suspend fun getUnreadNotificationCount(): Result<Int>
+
+    // DM
+    suspend fun getDmConversations(): Result<List<DmConversation>>
+    suspend fun getDmConversationDetail(documentId: String): Result<DmConversationDetail>
+    suspend fun createDirectConversation(targetUserId: Int): Result<Pair<DmConversation, Boolean>>
+    suspend fun getDmMessages(
+        conversationId: String,
+        cursor: String? = null,
+        limit: Int = 50
+    ): Result<DmMessagePage>
+
+    suspend fun sendDmMessage(
+        conversationId: String,
+        content: String,
+        kind: String = "text",
+        replyTo: String? = null
+    ): Result<DmMessage>
+
+    suspend fun editDmMessage(messageId: String, content: String): Result<Boolean>
+    suspend fun withdrawDmMessage(messageId: String): Result<Boolean>
+    suspend fun markDmConversationRead(conversationId: String): Result<Boolean>
+    suspend fun getDmSocketTicket(): Result<DmSocketTicket>
 
     // Denny
     suspend fun getDennyBalance(): Result<DennyBalance>

@@ -37,4 +37,14 @@ data class Search(
 ) : InterknotRoute()
 
 @Serializable
+data object DmList : InterknotRoute(requiresLogin = true)
+
+@Serializable
+data class DmDetail(
+    val conversationId: String? = null,
+    val targetUserId: Int? = null,
+    val targetName: String? = null
+) : InterknotRoute(requiresLogin = true)
+
+@Serializable
 data class Login(val redirectToKey: InterknotRoute? = null) : InterknotRoute()

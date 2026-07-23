@@ -97,6 +97,7 @@ private fun ProfileStatsDto?.toDomain() = this?.let {
 fun ProfileDataDto.toDomain() = Profile(
     author = Author(
         documentId = documentId,
+        userId = userId,
         username = user?.username,
         name = name,
         avatarUrl = avatar.extractImageUrl(),

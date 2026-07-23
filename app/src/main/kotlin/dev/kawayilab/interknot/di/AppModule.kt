@@ -19,6 +19,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import io.ktor.http.encodedPath
@@ -43,6 +44,7 @@ object AppModule {
         install(ContentNegotiation) {
             json(json)
         }
+        install(WebSockets)
         defaultRequest {
             val base = Url(BuildConfig.API_BASE_URL)
             url {

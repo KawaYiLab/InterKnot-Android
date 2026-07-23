@@ -14,6 +14,12 @@ import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.model.DmConversationDetail
+import dev.kawayilab.interknot.model.DmMessage
+import dev.kawayilab.interknot.model.DmMessagePage
+import dev.kawayilab.interknot.model.DmSocketTicket
+import dev.kawayilab.interknot.model.NotificationPage
 import dev.kawayilab.interknot.model.Benefits
 import dev.kawayilab.interknot.model.BioUpdateResult
 import dev.kawayilab.interknot.model.ExamReview
@@ -62,6 +68,9 @@ class InterknotRepository @Inject constructor(
     val isLoggedIn: Flow<Boolean> = user.map { it != null }
 
     val token: Flow<String?> = preferences.token
+
+    private val _unreadNotificationCount = MutableStateFlow(0)
+    val unreadNotificationCount: StateFlow<Int> = _unreadNotificationCount.asStateFlow()
 
     init {
         // todo: load user from DataStore on app start? UserPreferences.user flow can be collected externally.
@@ -246,6 +255,41 @@ class InterknotRepository @Inject constructor(
     suspend fun markConversationRead(conversationId: String): Result<Int> = api.markConversationRead(conversationId)
 
     suspend fun getUnreadNotificationCount(): Result<Int> = api.getUnreadNotificationCount()
+        .onSuccess { _unreadNotificationCount.value = it }
+
+    // Notifications
+    suspend fun getNotifications(start: Int = 0, limit: Int = 20, isRead: Boolean? = null): Result<NotificationPage> =
+        api.getNotifications(start, limit, isRead)
+
+    suspend fun markNotificationRead(documentId: String): Result<Boolean> =
+        api.markNotificationRead(documentId).onSuccess { getUnreadNotificationCount() }
+
+    suspend fun markAllNotificationsRead(): Result<Int> =
+        api.markAllNotificationsRead().onSuccess { _unreadNotificationCount.value = 0 }
+
+    // DM
+    suspend fun getDmConversations(): Result<List<DmConversation>> = api.getDmConversations()
+    suspend fun getDmConversationDetail(documentId: String): Result<DmConversationDetail> = api.getDmConversationDetail(documentId)
+    suspend fun createDirectConversation(targetUserId: Int): Result<Pair<DmConversation, Boolean>> =
+        api.createDirectConversation(targetUserId)
+
+    suspend fun getDmMessages(
+        conversationId: String,
+        cursor: String? = null,
+        limit: Int = 50
+    ): Result<DmMessagePage> = api.getDmMessages(conversationId, cursor, limit)
+
+    suspend fun sendDmMessage(
+        conversationId: String,
+        content: String,
+        kind: String = "text",
+        replyTo: String? = null
+    ): Result<DmMessage> = api.sendDmMessage(conversationId, content, kind, replyTo)
+
+    suspend fun editDmMessage(messageId: String, content: String): Result<Boolean> = api.editDmMessage(messageId, content)
+    suspend fun withdrawDmMessage(messageId: String): Result<Boolean> = api.withdrawDmMessage(messageId)
+    suspend fun markDmConversationRead(conversationId: String): Result<Boolean> = api.markDmConversationRead(conversationId)
+    suspend fun getDmSocketTicket(): Result<DmSocketTicket> = api.getDmSocketTicket()
 
     // Profile / Me
     suspend fun getProfile(documentId: String): Result<Profile> = api.getProfile(documentId)

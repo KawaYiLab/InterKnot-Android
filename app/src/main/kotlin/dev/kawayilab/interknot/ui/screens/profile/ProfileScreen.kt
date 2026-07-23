@@ -96,6 +96,8 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onNavigateToPost: (String) -> Unit,
     onNavigateToLevel: () -> Unit,
+    onNavigateToDm: (Int?, String?) -> Unit = { _, _ -> },
+    onNavigateToDmList: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -172,7 +174,9 @@ fun ProfileScreen(
                     onAvatarClick = { showAvatarDialog = true },
                     onCardClick = { showCardDialog = true },
                     onPinnedClick = { showPinnedDialog = true },
-                    onBlockedClick = { showBlockedDialog = true }
+                    onBlockedClick = { showBlockedDialog = true },
+                    onDmClick = { profile?.author?.userId?.let { onNavigateToDm(it, profile?.author?.name ?: profile?.author?.username ?: "") } },
+                    onDmListClick = onNavigateToDmList
                 )
             }
         }
@@ -240,7 +244,9 @@ private fun ProfileContent(
     onAvatarClick: () -> Unit,
     onCardClick: () -> Unit,
     onPinnedClick: () -> Unit,
-    onBlockedClick: () -> Unit
+    onBlockedClick: () -> Unit,
+    onDmClick: () -> Unit,
+    onDmListClick: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("帖子", "评论")
@@ -282,7 +288,9 @@ private fun ProfileContent(
                 onAvatarClick = onAvatarClick,
                 onCardClick = onCardClick,
                 onPinnedClick = onPinnedClick,
-                onBlockedClick = onBlockedClick
+                onBlockedClick = onBlockedClick,
+                onDmClick = onDmClick,
+                onDmListClick = onDmListClick
             )
         }
 
@@ -345,7 +353,9 @@ private fun ProfileHeader(
     onAvatarClick: () -> Unit,
     onCardClick: () -> Unit,
     onPinnedClick: () -> Unit,
-    onBlockedClick: () -> Unit
+    onBlockedClick: () -> Unit,
+    onDmClick: () -> Unit,
+    onDmListClick: () -> Unit
 ) {
     val author = profile?.author
     Column(
@@ -394,6 +404,7 @@ private fun ProfileHeader(
                 TextButton(onClick = onCardClick) { Text("名片") }
                 TextButton(onClick = onPinnedClick) { Text("置顶") }
                 TextButton(onClick = onBlockedClick) { Text("黑名单") }
+                TextButton(onClick = onDmListClick) { Text("私信") }
                 TextButton(onClick = onLogout) { Text("退出") }
             }
         } else {
@@ -405,6 +416,7 @@ private fun ProfileHeader(
                 Button(onClick = onFollowClick) {
                     Text(if (isFollowing) "已关注" else "关注")
                 }
+                OutlinedButton(onClick = onDmClick) { Text("私信") }
                 if (profile?.isBlocked == true) {
                     OutlinedButton(onClick = onFollowClick) { Text("已拉黑") }
                 }
