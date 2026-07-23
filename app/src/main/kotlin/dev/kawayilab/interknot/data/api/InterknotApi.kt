@@ -4,13 +4,24 @@ import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.model.Avatar
 import dev.kawayilab.interknot.model.Benefits
 import dev.kawayilab.interknot.model.BioUpdateResult
 import dev.kawayilab.interknot.model.BlockResult
+import dev.kawayilab.interknot.model.BusinessCard
+import dev.kawayilab.interknot.model.CheckInResult
+import dev.kawayilab.interknot.model.CheckInStatus
+import dev.kawayilab.interknot.model.DailyExp
+import dev.kawayilab.interknot.model.ExpInfo
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.model.DmConversationDetail
+import dev.kawayilab.interknot.model.DmMessage
+import dev.kawayilab.interknot.model.DmMessagePage
+import dev.kawayilab.interknot.model.DmSocketTicket
 import dev.kawayilab.interknot.model.ExamStartResult
 import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.ExamSubmitResult
@@ -148,6 +159,18 @@ interface InterknotApi {
     suspend fun getPinnedArticles(limit: Int = 50): Result<PinnedArticlesResponse>
     suspend fun updatePinnedArticles(pinned: List<String>?): Result<PinnedUpdateResult>
 
+    suspend fun getAvatars(): Result<Pair<List<Avatar>, String?>>
+    suspend fun equipAvatar(documentId: String?): Result<String?>
+    suspend fun getBusinessCards(type: String? = null): Result<Pair<List<BusinessCard>, String?>>
+    suspend fun equipBusinessCard(documentId: String?): Result<String?>
+    suspend fun getBlockedAuthors(start: Int, limit: Int): Result<List<Author>>
+
+    // Check-in / Level
+    suspend fun getCheckInStatus(): Result<CheckInStatus>
+    suspend fun checkIn(): Result<CheckInResult>
+    suspend fun getMyExp(): Result<ExpInfo>
+    suspend fun getDailyExp(): Result<DailyExp>
+
     // Notifications / Knock
     suspend fun getNotifications(
         start: Int,
@@ -166,6 +189,28 @@ interface InterknotApi {
 
     suspend fun markConversationRead(conversationId: String): Result<Int>
     suspend fun getUnreadNotificationCount(): Result<Int>
+
+    // DM
+    suspend fun getDmConversations(): Result<List<DmConversation>>
+    suspend fun getDmConversationDetail(documentId: String): Result<DmConversationDetail>
+    suspend fun createDirectConversation(targetUserId: Int): Result<Pair<DmConversation, Boolean>>
+    suspend fun getDmMessages(
+        conversationId: String,
+        cursor: String? = null,
+        limit: Int = 50
+    ): Result<DmMessagePage>
+
+    suspend fun sendDmMessage(
+        conversationId: String,
+        content: String,
+        kind: String = "text",
+        replyTo: String? = null
+    ): Result<DmMessage>
+
+    suspend fun editDmMessage(messageId: String, content: String): Result<Boolean>
+    suspend fun withdrawDmMessage(messageId: String): Result<Boolean>
+    suspend fun markDmConversationRead(conversationId: String): Result<Boolean>
+    suspend fun getDmSocketTicket(): Result<DmSocketTicket>
 
     // Denny
     suspend fun getDennyBalance(): Result<DennyBalance>

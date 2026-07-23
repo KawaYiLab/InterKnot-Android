@@ -109,6 +109,7 @@ fun PostDetailScreen(
     postId: String,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAuthorClick: (String) -> Unit = {},
     viewModel: ArticleDetailViewModel = hiltViewModel()
 ) {
     val article by viewModel.article.collectAsStateWithLifecycle()
@@ -160,6 +161,9 @@ fun PostDetailScreen(
                 PostDetailTopBar(
                     article = it,
                     onBack = onNavigateBack,
+                    onAuthorClick = { authorDocumentId ->
+                        if (authorDocumentId.isNotBlank()) onAuthorClick(authorDocumentId)
+                    },
                     onFollow = { viewModel.toggleFollowAuthor() },
                     onReport = { reportOpen = true },
                     onBlock = { blockOpen = true },
@@ -342,6 +346,7 @@ fun PostDetailScreen(
 private fun PostDetailTopBar(
     article: Article,
     onBack: () -> Unit,
+    onAuthorClick: (String) -> Unit,
     onFollow: () -> Unit,
     onReport: () -> Unit,
     onBlock: () -> Unit,
@@ -349,7 +354,7 @@ private fun PostDetailTopBar(
     onMenuOpenChange: (Boolean) -> Unit
 ) {
     TopAppBar(
-        title = { AuthorHeader(article = article, onFollow = onFollow) },
+        title = { AuthorHeader(article = article, onAuthorClick = onAuthorClick, onFollow = onFollow) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -402,6 +407,7 @@ private fun PostDetailTopBar(
 @Composable
 private fun AuthorHeader(
     article: Article,
+    onAuthorClick: (String) -> Unit,
     onFollow: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -411,7 +417,10 @@ private fun AuthorHeader(
     val isFollowing = author?.isFollowing == true
 
     Row(
-        modifier = modifier,
+        modifier = modifier.clickable(
+            enabled = author?.documentId != null,
+            onClick = { author?.documentId?.let(onAuthorClick) }
+        ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {

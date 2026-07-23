@@ -16,6 +16,8 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -54,7 +56,8 @@ private val navItems = listOf(
 fun InterknotBottomNav(
     currentRoute: InterknotRoute,
     onNavigate: (InterknotRoute) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    unreadCount: Int = 0
 ) {
     NavigationBar(
         modifier = modifier,
@@ -69,10 +72,20 @@ fun InterknotBottomNav(
                     if (item.isCreate) {
                         CreateNavIcon(selected = selected)
                     } else {
-                        Icon(
-                            imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.label
-                        )
+                        val isBadge = item.route == Knock && unreadCount > 0
+                        if (isBadge) {
+                            BadgedBox(badge = { Badge { Text(unreadCount.toString()) } }) {
+                                Icon(
+                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label
+                            )
+                        }
                     }
                 },
                 label = { Text(item.label) },

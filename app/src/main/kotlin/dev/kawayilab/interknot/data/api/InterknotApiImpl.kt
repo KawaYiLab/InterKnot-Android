@@ -6,6 +6,8 @@ import dev.kawayilab.interknot.data.api.dto.ArticleListItemDto
 import dev.kawayilab.interknot.data.api.dto.ArticleRefDto
 import dev.kawayilab.interknot.data.api.dto.AuthResponseDto
 import dev.kawayilab.interknot.data.api.dto.AuthorSearchItemDto
+import dev.kawayilab.interknot.data.api.dto.AvatarDto
+import dev.kawayilab.interknot.data.api.dto.AvatarListResponseDto
 import dev.kawayilab.interknot.data.api.dto.BioUpdateResultDto
 import dev.kawayilab.interknot.data.api.dto.BlockCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.BlockResultDto
@@ -16,11 +18,24 @@ import dev.kawayilab.interknot.data.api.dto.CommentListMetaDto
 import dev.kawayilab.interknot.data.api.dto.CommentListResponseDto
 import dev.kawayilab.interknot.data.api.dto.DataListDto
 import dev.kawayilab.interknot.data.api.dto.BenefitsDto
+import dev.kawayilab.interknot.data.api.dto.BusinessCardDto
+import dev.kawayilab.interknot.data.api.dto.BusinessCardListResponseDto
+import dev.kawayilab.interknot.data.api.dto.CheckInResultDto
+import dev.kawayilab.interknot.data.api.dto.CheckInStatusDto
+import dev.kawayilab.interknot.data.api.dto.DailyExpDto
 import dev.kawayilab.interknot.data.api.dto.DennyBalanceDto
+import dev.kawayilab.interknot.data.api.dto.DmConversationDetailDto
+import dev.kawayilab.interknot.data.api.dto.DmConversationDto
+import dev.kawayilab.interknot.data.api.dto.DmDirectResultDto
+import dev.kawayilab.interknot.data.api.dto.DmMessageDto
+import dev.kawayilab.interknot.data.api.dto.DmMessagePageDto
+import dev.kawayilab.interknot.data.api.dto.DmOperationResultDto
+import dev.kawayilab.interknot.data.api.dto.DmSocketTicketDto
 import dev.kawayilab.interknot.data.api.dto.ExamReviewDto
 import dev.kawayilab.interknot.data.api.dto.ExamStartResultDto
 import dev.kawayilab.interknot.data.api.dto.ExamStatusDto
 import dev.kawayilab.interknot.data.api.dto.ExamSubmitResultDto
+import dev.kawayilab.interknot.data.api.dto.ExpInfoDto
 import dev.kawayilab.interknot.data.api.dto.DennyGiveResponseDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteCheckResultDto
 import dev.kawayilab.interknot.data.api.dto.FavoriteListItemDto
@@ -59,12 +74,23 @@ import dev.kawayilab.interknot.model.Article
 import dev.kawayilab.interknot.model.ArticlePage
 import dev.kawayilab.interknot.model.AuthResult
 import dev.kawayilab.interknot.model.Author
+import dev.kawayilab.interknot.model.Avatar
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BusinessCard
+import dev.kawayilab.interknot.model.CheckInResult
+import dev.kawayilab.interknot.model.CheckInStatus
+import dev.kawayilab.interknot.model.DailyExp
+import dev.kawayilab.interknot.model.ExpInfo
 import dev.kawayilab.interknot.model.BlockResult
 import dev.kawayilab.interknot.model.Category
 import dev.kawayilab.interknot.model.CommentPage
 import dev.kawayilab.interknot.model.DennyBalance
 import dev.kawayilab.interknot.model.DennyGiveResult
+import dev.kawayilab.interknot.model.DmConversation
+import dev.kawayilab.interknot.model.DmConversationDetail
+import dev.kawayilab.interknot.model.DmMessage
+import dev.kawayilab.interknot.model.DmMessagePage
+import dev.kawayilab.interknot.model.DmSocketTicket
 import dev.kawayilab.interknot.model.ExamReview
 import dev.kawayilab.interknot.model.ExamStartResult
 import dev.kawayilab.interknot.model.ExamStatus
@@ -590,6 +616,65 @@ class InterknotApiImpl @Inject constructor(
         response.toDomain()
     }
 
+    override suspend fun getAvatars(): Result<Pair<List<Avatar>, String?>> = runCatching {
+        val response: AvatarListResponseDto = client.authGet("me/avatars")
+        response.data.map { it.toDomain() } to response.equippedAvatarDocumentId
+    }
+
+    override suspend fun equipAvatar(documentId: String?): Result<String?> = runCatching {
+        val response: AvatarListResponseDto = client.authPut("me/avatars/equip") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("documentId" to documentId))
+        }
+        response.equippedAvatarDocumentId
+    }
+
+    override suspend fun getBusinessCards(type: String?): Result<Pair<List<BusinessCard>, String?>> = runCatching {
+        val response: BusinessCardListResponseDto = client.authGet("me/business-cards") {
+            if (!type.isNullOrBlank()) parameter("type", type)
+        }
+        response.data.map { it.toDomain() } to (response.equippedCardDocumentId ?: response.equippedCard?.documentId)
+    }
+
+    override suspend fun equipBusinessCard(documentId: String?): Result<String?> = runCatching {
+        val response: BusinessCardListResponseDto = client.authPut("me/business-cards/equip") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("documentId" to documentId))
+        }
+        response.equippedCardDocumentId ?: response.equippedCard?.documentId
+    }
+
+    override suspend fun getBlockedAuthors(start: Int, limit: Int): Result<List<Author>> = runCatching {
+        val response: PagedListDto<AuthorSearchItemDto> = client.authGet("user-blocks/my-list") {
+            parameter("start", start)
+            parameter("limit", limit)
+        }
+        response.data.map { it.toDomain() }
+    }
+
+    override suspend fun getCheckInStatus(): Result<CheckInStatus> = runCatching {
+        val response: CheckInStatusDto = client.authGet("check-in/status")
+        response.toDomain()
+    }
+
+    override suspend fun checkIn(): Result<CheckInResult> = runCatching {
+        val response: CheckInResultDto = client.authPost("check-in") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
+        }
+        response.toDomain()
+    }
+
+    override suspend fun getMyExp(): Result<ExpInfo> = runCatching {
+        val response: ExpInfoDto = client.authGet("me/exp")
+        response.toDomain()
+    }
+
+    override suspend fun getDailyExp(): Result<DailyExp> = runCatching {
+        val response: DailyExpDto = client.authGet("me/exp/daily")
+        response.toDomain()
+    }
+
     override suspend fun getNotifications(
         start: Int,
         limit: Int,
@@ -750,6 +835,82 @@ class InterknotApiImpl @Inject constructor(
                     if (height != null) put("height", height)
                 }
             )
+        }
+        response.data.toDomain()
+    }
+
+    override suspend fun getDmConversations(): Result<List<DmConversation>> = runCatching {
+        val response: DataListDto<DmConversationDto> = client.authGet("dm/conversations")
+        response.data.map { it.toDomain() }
+    }
+
+    override suspend fun getDmConversationDetail(documentId: String): Result<DmConversationDetail> = runCatching {
+        val response: SingleDto<DmConversationDetailDto> = client.authGet("dm/conversations/$documentId")
+        response.data.toDomain()
+    }
+
+    override suspend fun createDirectConversation(targetUserId: Int): Result<Pair<DmConversation, Boolean>> = runCatching {
+        val response: DmDirectResultDto = client.authPost("dm/conversations/direct") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("targetUserId" to targetUserId))
+        }
+        val conv = response.data?.toDomain() ?: throw IllegalStateException("empty conversation response")
+        conv to response.isNew
+    }
+
+    override suspend fun getDmMessages(
+        conversationId: String,
+        cursor: String?,
+        limit: Int
+    ): Result<DmMessagePage> = runCatching {
+        val response: DmMessagePageDto = client.authGet("dm/conversations/$conversationId/messages") {
+            parameter("limit", limit)
+            if (!cursor.isNullOrBlank()) parameter("before", cursor)
+        }
+        response.toDomain()
+    }
+
+    override suspend fun sendDmMessage(
+        conversationId: String,
+        content: String,
+        kind: String,
+        replyTo: String?
+    ): Result<DmMessage> = runCatching {
+        val response: SingleDto<DmMessageDto> = client.authPost("dm/conversations/$conversationId/messages") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                buildMap {
+                    put("content", content)
+                    put("kind", kind)
+                    if (!replyTo.isNullOrBlank()) put("replyTo", replyTo)
+                }
+            )
+        }
+        response.data.toDomain()
+    }
+
+    override suspend fun editDmMessage(messageId: String, content: String): Result<Boolean> = runCatching {
+        val response: SingleDto<DmOperationResultDto> = client.authPatch("dm/messages/$messageId") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("content" to content))
+        }
+        response.data.documentId == messageId || response.data.ok == true
+    }
+
+    override suspend fun withdrawDmMessage(messageId: String): Result<Boolean> = runCatching {
+        val response: SingleDto<DmOperationResultDto> = client.authDelete("dm/messages/$messageId")
+        response.data.documentId == messageId || response.data.ok == true
+    }
+
+    override suspend fun markDmConversationRead(conversationId: String): Result<Boolean> = runCatching {
+        val response: SingleDto<DmOperationResultDto> = client.authPatch("dm/conversations/$conversationId/read")
+        response.data.ok == true || response.data.lastReadAt != null
+    }
+
+    override suspend fun getDmSocketTicket(): Result<DmSocketTicket> = runCatching {
+        val response: SingleDto<DmSocketTicketDto> = client.authPost("dm/socket/ticket") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf<String, String>())
         }
         response.data.toDomain()
     }

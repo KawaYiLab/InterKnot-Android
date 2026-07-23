@@ -1,7 +1,9 @@
 package dev.kawayilab.interknot.data.api.dto
 
 import dev.kawayilab.interknot.model.ArticleRef
+import dev.kawayilab.interknot.model.Avatar
 import dev.kawayilab.interknot.model.BioUpdateResult
+import dev.kawayilab.interknot.model.BusinessCard
 import dev.kawayilab.interknot.model.NameUpdateResult
 import dev.kawayilab.interknot.model.PinnedArticlesResponse
 import dev.kawayilab.interknot.model.PinnedUpdateResult
@@ -42,4 +44,51 @@ fun BioUpdateResultDto.toDomain() = BioUpdateResult(success = success, bio = bio
 fun VisibilityUpdateResultDto.toDomain() = VisibilityUpdateResult(
     success = success,
     profileHidden = profileHidden
+)
+
+@Serializable
+data class AvatarDto(
+    val documentId: String? = null,
+    val name: String? = null,
+    val type: String? = null,
+    val image: ImageMetaDto? = null
+)
+
+@Serializable
+data class BusinessCardDto(
+    val documentId: String? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val story: String? = null,
+    val type: String? = null,
+    val image: ImageMetaDto? = null
+)
+
+@Serializable
+data class AvatarListResponseDto(
+    val data: List<AvatarDto> = emptyList(),
+    val equippedAvatarDocumentId: String? = null
+)
+
+@Serializable
+data class BusinessCardListResponseDto(
+    val data: List<BusinessCardDto> = emptyList(),
+    val equippedCardDocumentId: String? = null,
+    val equippedCard: BusinessCardDto? = null
+)
+
+fun AvatarDto.toDomain() = Avatar(
+    documentId = documentId,
+    name = name,
+    type = type,
+    image = image?.toDomain()
+)
+
+fun BusinessCardDto.toDomain() = BusinessCard(
+    documentId = documentId,
+    name = name,
+    description = description,
+    story = story,
+    type = type,
+    image = image?.toDomain()
 )

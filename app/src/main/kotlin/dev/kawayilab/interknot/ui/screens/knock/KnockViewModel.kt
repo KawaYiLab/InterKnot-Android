@@ -3,12 +3,12 @@ package dev.kawayilab.interknot.ui.screens.knock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.kawayilab.interknot.data.realtime.SseManager
 import dev.kawayilab.interknot.data.repository.InterknotRepository
 import dev.kawayilab.interknot.model.KnockConversation
 import dev.kawayilab.interknot.model.KnockNotification
 import javax.inject.Inject
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class KnockViewModel @Inject constructor(
-    private val repository: InterknotRepository
+    private val repository: InterknotRepository,
+    private val sseManager: SseManager
 ) : ViewModel() {
 
     private val _conversations = MutableStateFlow<List<KnockConversation>>(emptyList())
@@ -28,8 +29,7 @@ class KnockViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _unreadCount = MutableStateFlow(0)
-    val unreadCount: StateFlow<Int> = _unreadCount.asStateFlow()
+    val unreadCount: StateFlow<Int> = repository.unreadNotificationCount
 
     private val _selectedConversation = MutableStateFlow<KnockConversation?>(null)
     val selectedConversation: StateFlow<KnockConversation?> = _selectedConversation.asStateFlow()
@@ -40,26 +40,50 @@ class KnockViewModel @Inject constructor(
     private val _isLoadingMessages = MutableStateFlow(false)
     val isLoadingMessages: StateFlow<Boolean> = _isLoadingMessages.asStateFlow()
 
-    private var pollingJob: Job? = null
+    private var tokenJob: Job? = null
+    private var eventJob: Job? = null
 
     init {
         startPolling()
     }
 
     fun startPolling() {
-        if (pollingJob?.isActive == true) return
-        pollingJob = viewModelScope.launch {
-            while (true) {
-                refresh()
-                repository.getUnreadNotificationCount().onSuccess { _unreadCount.value = it }
-                delay(15_000)
+        if (tokenJob?.isActive == true) return
+
+        tokenJob = viewModelScope.launch {
+            repository.token.collect { token ->
+                sseManager.connect(token)
             }
         }
+
+        eventJob = viewModelScope.launch {
+            sseManager.events.collect { event ->
+                when (event.type) {
+                    "notification.created",
+                    "notification.read",
+                    "notification.read.bulk",
+                    "message.created",
+                    "message.deleted",
+                    "message.edited",
+                    "conversation.read",
+                    "conversation.updated" -> {
+                        refresh()
+                        updateUnreadCount()
+                    }
+                }
+            }
+        }
+
+        refresh()
+        updateUnreadCount()
     }
 
     fun stopPolling() {
-        pollingJob?.cancel()
-        pollingJob = null
+        tokenJob?.cancel()
+        tokenJob = null
+        eventJob?.cancel()
+        eventJob = null
+        sseManager.disconnect()
     }
 
     fun refresh() {
@@ -70,6 +94,12 @@ class KnockViewModel @Inject constructor(
                 .onSuccess { _conversations.value = it }
                 .onFailure { _error.value = it.message ?: "加载失败" }
             _isLoading.value = false
+        }
+    }
+
+    private fun updateUnreadCount() {
+        viewModelScope.launch {
+            repository.getUnreadNotificationCount()
         }
     }
 
@@ -91,7 +121,7 @@ class KnockViewModel @Inject constructor(
     fun markConversationRead(conversationId: String) {
         viewModelScope.launch {
             repository.markConversationRead(conversationId)
-                .onSuccess { refresh() }
+                .onSuccess { refresh(); updateUnreadCount() }
         }
     }
 

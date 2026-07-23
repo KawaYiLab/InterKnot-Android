@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.kawayilab.interknot.data.local.CreateDraft
+import dev.kawayilab.interknot.data.local.UserPreferences
 import dev.kawayilab.interknot.data.repository.InterknotRepository
 import dev.kawayilab.interknot.data.upload.DirectUploadManager
 import dev.kawayilab.interknot.model.Benefits
@@ -19,15 +21,18 @@ import dev.kawayilab.interknot.model.ExamStatus
 import dev.kawayilab.interknot.model.UploadedFile
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class CreateViewModel @Inject constructor(
     private val repository: InterknotRepository,
     private val uploadManager: DirectUploadManager,
+    private val preferences: UserPreferences,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -65,16 +70,36 @@ class CreateViewModel @Inject constructor(
     val benefits: StateFlow<Benefits?> = _benefits.asStateFlow()
 
     private var uploadJob: Job? = null
+    private var localDraftJob: Job? = null
+    private var remoteDraftJob: Job? = null
+    private var remoteDraftId: String? = null
+    private var pendingCategorySlug: String? = null
 
     init {
         loadCategories()
         loadExamAndBenefits()
+        loadDraft()
     }
 
-    fun setTitle(value: String) { _title.value = value }
-    fun setBody(value: String) { _body.value = value }
-    fun setCategory(value: Category?) { _category.value = value }
-    fun setAnonymous(value: Boolean) { _isAnonymous.value = value }
+    fun setTitle(value: String) {
+        _title.value = value
+        scheduleSaveDraft()
+    }
+
+    fun setBody(value: String) {
+        _body.value = value
+        scheduleSaveDraft()
+    }
+
+    fun setCategory(value: Category?) {
+        _category.value = value
+        scheduleSaveDraft()
+    }
+
+    fun setAnonymous(value: Boolean) {
+        _isAnonymous.value = value
+        scheduleSaveDraft()
+    }
 
     fun addImages(uris: List<Uri>) {
         val current = _selectedImages.value.toMutableList()
@@ -243,7 +268,15 @@ class CreateViewModel @Inject constructor(
 
     private fun loadCategories() {
         viewModelScope.launch {
-            repository.getCategories().onSuccess { _categories.value = it }
+            repository.getCategories().onSuccess { list ->
+                _categories.value = list
+                pendingCategorySlug?.let { slug ->
+                    if (_category.value == null) {
+                        _category.value = list.find { it.slug == slug }
+                    }
+                    pendingCategorySlug = null
+                }
+            }
         }
     }
 
@@ -256,12 +289,80 @@ class CreateViewModel @Inject constructor(
         }
     }
 
+    private fun loadDraft() {
+        viewModelScope.launch {
+            val draft = preferences.createDraft.first() ?: return@launch
+            _title.value = draft.title
+            _body.value = draft.body
+            _isAnonymous.value = draft.isAnonymous
+            remoteDraftId = draft.remoteDraftId
+            if (draft.categorySlug != null) {
+                val match = _categories.value.find { it.slug == draft.categorySlug }
+                if (match != null) {
+                    _category.value = match
+                } else {
+                    pendingCategorySlug = draft.categorySlug
+                }
+            }
+        }
+    }
+
+    private fun scheduleSaveDraft() {
+        localDraftJob?.cancel()
+        remoteDraftJob?.cancel()
+        localDraftJob = viewModelScope.launch {
+            delay(1500)
+            saveLocalDraft()
+        }
+        remoteDraftJob = viewModelScope.launch {
+            delay(10000)
+            saveRemoteDraft()
+        }
+    }
+
+    private suspend fun saveLocalDraft() {
+        val t = _title.value.trim()
+        val b = _body.value.trim()
+        val slug = _category.value?.slug
+        val draft = CreateDraft(
+            title = t,
+            body = b,
+            categorySlug = slug,
+            isAnonymous = _isAnonymous.value,
+            imageDocumentIds = emptyList(),
+            remoteDraftId = remoteDraftId
+        )
+        if (t.isEmpty() && b.isEmpty() && slug == null && !_isAnonymous.value && remoteDraftId == null) {
+            preferences.clearCreateDraft()
+        } else {
+            preferences.saveCreateDraft(draft)
+        }
+    }
+
+    private suspend fun saveRemoteDraft() {
+        val t = _title.value.trim()
+        val b = _body.value.trim()
+        if (t.isEmpty() || b.isEmpty()) return
+        repository.saveArticleDraft(
+            title = t,
+            text = b,
+            category = _category.value?.slug,
+            isAnonymous = _isAnonymous.value,
+            existingDocumentId = remoteDraftId
+        ).onSuccess { id ->
+            remoteDraftId = id
+            saveLocalDraft()
+        }
+    }
+
     private fun clearForm() {
         _title.value = ""
         _body.value = ""
         _selectedImages.value = emptyList()
         _category.value = null
         _isAnonymous.value = false
+        remoteDraftId = null
+        viewModelScope.launch { preferences.clearCreateDraft() }
     }
 
     data class PendingImage(

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Author(
     val documentId: String? = null,
+    val userId: Int? = null,
     val username: String? = null,
     val name: String? = null,
     val email: String? = null,
